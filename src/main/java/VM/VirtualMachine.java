@@ -21,6 +21,7 @@ public final class VirtualMachine {
 
     }
 
+
     //LOAD FUNCTIONS TODO: rewrite() & validate --> Allow Comments!??
     private static int countLines(String str){
         String[] lines = str.split("\r\n|\r|\n");
@@ -67,7 +68,6 @@ public final class VirtualMachine {
     public boolean load(File asm){
         try (BufferedReader br = new BufferedReader(new FileReader(asm))) {
             String tmp,  str = br.readLine()+"\r\n";
-
             while ((tmp = br.readLine()) != null)   { str+=tmp+"\r\n"; }
 
             System.out.println("****************************************");

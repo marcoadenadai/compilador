@@ -2,6 +2,8 @@ package GUI;
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
+
+import COMP.Lexico;
 import VM.VirtualMachine;
 import org.fife.ui.rtextarea.*;
 import org.fife.ui.rsyntaxtextarea.*;
@@ -126,6 +128,18 @@ public final class Interface extends JFrame {
         BtnComp.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+                int returnValue = jfc.showOpenDialog(null);
+
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    File selectedFile = jfc.getSelectedFile();
+                    if(Lexico.getInstance().load(selectedFile)) {
+                        Lexico.getInstance().erro(-1);
+                        //QUANDO A LINHA DE ERRO É -1 SIGNIFICA QUE NAO TEVE ERROS
+                        //APENAS PARA PROPOSITO DE TESTES!!!
+                        //DEPOIS REMOVER PUBLIC DO Lexico - erro
+                    }
+                }
                 super.mouseClicked(e);
             }
         });
@@ -137,11 +151,12 @@ public final class Interface extends JFrame {
 
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = jfc.getSelectedFile();
-                    if(VirtualMachine.getInstance().load(selectedFile))
-                        for(int i=0;i<VirtualMachine.getInstance().I.size();i++){
+                    if(VirtualMachine.getInstance().load(selectedFile)) {
+                        for (int i = 0; i < VirtualMachine.getInstance().I.size(); i++) {
                             TModI.addRow(VirtualMachine.getInstance().I.get(i));
                         }
                         updateInstructions();
+                    }
                 }
             }
         });
