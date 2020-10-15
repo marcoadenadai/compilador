@@ -3,6 +3,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 
+import COMP.Compilador;
 import COMP.Lexico;
 import VM.VirtualMachine;
 import org.fife.ui.rtextarea.*;
@@ -133,12 +134,7 @@ public final class Interface extends JFrame {
 
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = jfc.getSelectedFile();
-                    if(Lexico.getInstance().load(selectedFile)) {
-                        Lexico.getInstance().erro(-1);
-                        //QUANDO A LINHA DE ERRO É -1 SIGNIFICA QUE NAO TEVE ERROS
-                        //APENAS PARA PROPOSITO DE TESTES!!!
-                        //DEPOIS REMOVER PUBLIC DO Lexico - erro
-                    }
+                    Compilador.getInstance().executa(selectedFile);
                 }
                 super.mouseClicked(e);
             }

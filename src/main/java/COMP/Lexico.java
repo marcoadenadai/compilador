@@ -1,25 +1,20 @@
 package COMP;
 
+import DATATYPES.Erro;
 import DATATYPES.Tok;
-import GUI.Interface;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public final class Lexico {
     private ArrayList<Tok> T = new ArrayList<Tok>();
     public static final Lexico INSTANCE = new Lexico();
-
     public static Lexico getInstance() {
         return INSTANCE;
     }
-
     public Lexico(){
 
     }
@@ -35,7 +30,9 @@ public final class Lexico {
 
     public void erro(int line){
         JTextArea txtArea = new JTextArea(TokListToString());
-        txtArea.setLineWrap(true);
+
+
+
         txtArea.setWrapStyleWord(true);
         JScrollPane scrollP = new JScrollPane(txtArea);
         scrollP.setPreferredSize(new Dimension(500,500));
@@ -213,9 +210,7 @@ public final class Lexico {
                 else{
                     erro(ln.get());
                 }
-
             }
-
         }
         else if ((char)c == ';' || (char)c == ',' || (char)c == '(' || (char)c == ')' || (char)c == '.' ){
             //trata pontuacao
@@ -242,9 +237,9 @@ public final class Lexico {
         }
         return ret;
     }
-
-    public boolean load(File prog){
-
+//--------------------
+    public Erro load(File prog){
+        T.clear();
         try (BufferedReader br = new BufferedReader(new FileReader(prog))) {
             int c, ln=1;
             Tok t;
@@ -279,7 +274,7 @@ public final class Lexico {
                         }
                         else{
                             erro(ln);
-                            return false;
+                            return new Erro(ln,Erro.e.simbolo_invalido);
                         }
                     }
                     //trata espaçamentos
@@ -291,12 +286,20 @@ public final class Lexico {
                     }
                 }
                 if(c!=-1) {
+                    //LN.set(ln);
+                    //t = PegaToken(LN, c,br);
+                    //if(t==null)
+                    //    return false;
+                    //T.add(t);
+                    //ln=LN.get();
                     LN.set(ln);
                     t = PegaToken(LN, c,br);
-                    if(t==null)
-                        return false;
-                    T.add(t);
-                    ln=LN.get();
+                    if(t!=null) {
+                        T.add(t);
+                        ln = LN.get();
+                    }
+                    else
+                        return new Erro(ln,Erro.e.simbolo_invalido);
                 }
             }
         } catch (FileNotFoundException e) {
@@ -304,8 +307,19 @@ public final class Lexico {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return true;
+        if(T.size() == 0)
+            return new Erro(1,Erro.e.programa_vazio);
+        return new Erro(0, Erro.e.sucesso);
     }
+
+    public Tok getToken(int index){
+        if (index >= T.size())
+            return null;
+        return T.get(index);
+    }
+
+    public int getLength() { return T.size();}
+
 
 }
 
