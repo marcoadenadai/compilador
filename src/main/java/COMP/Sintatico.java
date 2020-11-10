@@ -1,9 +1,6 @@
 package COMP;
-
 import DATATYPES.Erro;
 import DATATYPES.Tok;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Sintatico {
     public static final Sintatico INSTANCE = new Sintatico();
@@ -26,6 +23,7 @@ public final class Sintatico {
     }
 
     Erro load(){
+        i=0;
         lexico_Token();
         if(T==null)
             return new Erro(1,Erro.e.programa_vazio);
@@ -44,28 +42,28 @@ public final class Sintatico {
                             //return new Erro(0, Erro.e.sucesso);
                         }else{
                             //programa nao acabou
-                            return new Erro(T.getLine(), Erro.e.miss_sponto_x);
+                            return new Erro(T, Erro.e.simbolo_nao_esperado);
                         }
                     }
                     else{
                         //missing ponto fim do bloco
-                        T = Lexico.getInstance().getToken(i-1);
-                        return new Erro(Lexico.getInstance().getLength(), Erro.e.miss_sponto);
+                        T = Lexico.getInstance().getToken(i-2);
+                        return new Erro(T, Erro.e.ponto_esperado);
                     }
                 }
                 else{
                     // missing virugla
-                    return new Erro(T.getLine(), Erro.e.miss_svirgula);
+                    return new Erro(T, Erro.e.virgula_esperada);
                 }
             }
             else{
                 //missing identificador after programa
-                return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+                return new Erro(T, Erro.e.identificador_esperado);
             }
         }
         else{
             //missing programa
-            return new Erro(T.getLine(), Erro.e.miss_sprograma);
+            return new Erro(T, Erro.e.programa_esperado);
         }
         return new Erro(0, Erro.e.sucesso);
     }
@@ -103,12 +101,13 @@ public final class Sintatico {
                         lexico_Token();
                     }
                     else{
-                        return new Erro(T.getLine(), Erro.e.miss_spontovirgula);
+                        //qualquer outro simbolo diferente de ; nao era esperado aqui..
+                        return new Erro(T, Erro.e.simbolo_nao_esperado);
                     }
                 }
             }
             else{
-                return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+                return new Erro(T, Erro.e.identificador_esperado);
             }
         }
         return new Erro(0, Erro.e.vazio);
@@ -124,16 +123,16 @@ public final class Sintatico {
                     if(token_simbolo() == Tok.s.virgula){
                         lexico_Token();
                         if(token_simbolo() == Tok.s.doispontos){
-                            return new Erro(T.getLine(), Erro.e.miss_sdoispontos_x);
+                            return new Erro(T, Erro.e.simbolo_nao_esperado);
                         }
                     }
                 }
                 else{
-                    return new Erro(T.getLine(), Erro.e.miss_sdoispontos_ou_virgula);
+                    return new Erro(T, Erro.e.pontovirgulaouvirugla_esperado);
                 }
             }
             else{
-                return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+                return new Erro(T, Erro.e.identificador_esperado);
             }
         }while(token_simbolo() != Tok.s.doispontos);
         lexico_Token();
@@ -146,7 +145,7 @@ public final class Sintatico {
     Erro analisa_tipo(){
         Erro E;
         if(token_simbolo()!= Tok.s.inteiro && token_simbolo() != Tok.s.booleano){
-            return new Erro(T.getLine(), Erro.e.miss_stipo);
+            return new Erro(T, Erro.e.tipo_esperado);
         }else{
             //semantico
         }
@@ -176,7 +175,7 @@ public final class Sintatico {
                 lexico_Token();
             }
             else{
-                return new Erro(T.getLine(), Erro.e.miss_spontovirgula);
+                return new Erro(T, Erro.e.simbolo_nao_esperado);
             }
         }
         if(flag == 1){
@@ -198,10 +197,10 @@ public final class Sintatico {
                     return E;
             }
             else{
-                return new Erro(T.getLine(), Erro.e.miss_spontovirgula);
+                return new Erro(T, Erro.e.simbolo_nao_esperado);
             }
         }else{
-            return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+            return new Erro(T, Erro.e.identificador_esperado);
         }
         //DESEMPILHA EM AZUL
         return new Erro(0, Erro.e.vazio);
@@ -222,16 +221,16 @@ public final class Sintatico {
                             return E;
                     }
                     else{
-                        return new Erro(T.getLine(), Erro.e.miss_spontovirgula);
+                        return new Erro(T, Erro.e.simbolo_nao_esperado);
                     }
                 }else{
-                    return new Erro(T.getLine(), Erro.e.miss_stipo);
+                    return new Erro(T, Erro.e.tipo_esperado);
                 }
             }else{
-                return new Erro(T.getLine(), Erro.e.miss_sdoispontos);
+                return new Erro(T, Erro.e.doispontos_esperado);
             }
         }else{
-            return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+            return new Erro(T, Erro.e.identificador_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -253,13 +252,13 @@ public final class Sintatico {
                             return E;
                     }
                 }else{
-                    return new Erro(T.getLine(), Erro.e.miss_spontovirgula);
+                    return new Erro(T, Erro.e.simbolo_nao_esperado);
                 }
             }
             lexico_Token();
         }
         else{
-            return new Erro(T.getLine(), Erro.e.miss_sinicio);
+            return new Erro(T, Erro.e.simbolo_nao_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -402,12 +401,12 @@ public final class Sintatico {
             if(token_simbolo() == Tok.s.fecha_parenteses){
                 lexico_Token();
             }else{
-                return new Erro(T.getLine(), Erro.e.miss_sfechaparenteses);
+                return new Erro(T, Erro.e.simbolo_nao_esperado);
             }
         }else if ( token_simbolo() == Tok.s.verdadeiro || token_simbolo() == Tok.s.falso){
             lexico_Token();
         }else{
-            return new Erro(T.getLine(), Erro.e.miss_fator);
+            return new Erro(T, Erro.e.simbolo_nao_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -424,13 +423,13 @@ public final class Sintatico {
                 if(token_simbolo() == Tok.s.fecha_parenteses){
                     lexico_Token();
                 } else {
-                    return new Erro(T.getLine(), Erro.e.miss_sfechaparenteses);
+                    return new Erro(T, Erro.e.fechaparenteses_esperado);
                 }
             } else {
-                return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+                return new Erro(T, Erro.e.identificador_esperado);
             }
         } else {
-            return new Erro(T.getLine(), Erro.e.miss_sabreparenteses);
+            return new Erro(T, Erro.e.abreparenteses_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -447,13 +446,13 @@ public final class Sintatico {
                 if(token_simbolo() == Tok.s.fecha_parenteses){
                     lexico_Token();
                 } else {
-                    return new Erro(T.getLine(), Erro.e.miss_sfechaparenteses);
+                    return new Erro(T, Erro.e.fechaparenteses_esperado);
                 }
             } else {
-                return new Erro(T.getLine(), Erro.e.miss_sidentificador);
+                return new Erro(T, Erro.e.identificador_esperado);
             }
         } else {
-            return new Erro(T.getLine(), Erro.e.miss_sabreparenteses);
+            return new Erro(T, Erro.e.abreparenteses_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -473,7 +472,7 @@ public final class Sintatico {
             if(E.get_errno() != 0)
                 return E;
         }else{
-            return new Erro(T.getLine(), Erro.e.miss_sfaca);
+            return new Erro(T, Erro.e.faca_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -496,7 +495,7 @@ public final class Sintatico {
                     return E;
             }
         }else{
-            return new Erro(T.getLine(), Erro.e.miss_sentao);
+            return new Erro(T, Erro.e.entao_esperado);
         }
         return new Erro(0, Erro.e.vazio);
     }

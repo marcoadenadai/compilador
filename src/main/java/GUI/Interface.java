@@ -1,19 +1,24 @@
 package GUI;
 import javax.swing.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileSystemView;
+import javax.swing.text.BadLocationException;
 import java.awt.*;
 
 import COMP.Compilador;
-import COMP.Lexico;
 import VM.VirtualMachine;
 import org.fife.ui.rtextarea.*;
 import org.fife.ui.rsyntaxtextarea.*;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.IntConsumer;
+
 
 public final class Interface extends JFrame {
     private static final Interface INSTANCE = new Interface();
@@ -44,58 +49,56 @@ public final class Interface extends JFrame {
     private TableModStack TModS;
     private NewSelectionModel SelectorI, SelectorS;
     private boolean vm_toogle = false;
+    private boolean unchanged = true;
+
+    private File selectedFile;
+    private JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+    final private RSyntaxTextArea textArea;
+    final private RTextScrollPane sp;
+    JTextArea consoleTextArea;
+    JMenuItem mitem_clear_log;
+    Panel consolePanel;
 
     //f(x) - functions
     public static Interface getInstance() {
         return INSTANCE;
     }
 
+    //boolean showDescartarDialog();
     //constructor
     public Interface(){
-        super("TestLab");
+        super("TestLab - novo arquivo");
         vm_toogle = false;
         setSize(1280, 720);
         setResizable(true);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);//DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); //EXIT_ON_CLOSE);
         menu = new JMenuBar();
         menu_file = new JMenu("File");
-        menu_edit = new JMenu("Edit");
         menu_help = new JMenu("Help");
         mitem_new = new JMenuItem("New");
         mitem_open = new JMenuItem("Open");
         mitem_save = new JMenuItem("Save");
         mitem_saveas = new JMenuItem("Save As");
         mitem_exit = new JMenuItem("Exit");
-        mitem_undo = new JMenuItem("Undo");
-        mitem_cut = new JMenuItem("Cut");
-        mitem_copy = new JMenuItem("Copy");
-        mitem_paste = new JMenuItem("Paste");
-        mitem_find = new JMenuItem("Find");
-        mitem_replace = new JMenuItem("Replace");
         mitem_about = new JMenuItem("About");
         menu_file.add(mitem_new);
         menu_file.add(mitem_open);
         menu_file.add(mitem_save);
         menu_file.add(mitem_saveas);
         menu_file.add(mitem_exit);
-        menu_edit.add(mitem_undo);
-        menu_edit.add(mitem_cut);
-        menu_edit.add(mitem_copy);
-        menu_edit.add(mitem_paste);
-        menu_edit.add(mitem_find);
-        menu_edit.add(mitem_replace);
         menu_help.add(mitem_about);
         menu.add(menu_file);
-        menu.add(menu_edit);
         menu.add(menu_help);
         setJMenuBar(menu);
+        jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        selectedFile = null;
 
         CenterPanel.setLayout(new BorderLayout());
-        RSyntaxTextArea textArea = new RSyntaxTextArea(20, 60);
-        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVA);
+        textArea = new RSyntaxTextArea(20, 60);
+        //textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVA);
         textArea.setCodeFoldingEnabled(true);
-        RTextScrollPane sp = new RTextScrollPane(textArea);
+        sp = new RTextScrollPane(textArea);
         CenterPanel.add(sp,BorderLayout.CENTER);
 
         try {
@@ -107,6 +110,219 @@ public final class Interface extends JFrame {
         }
         //CenterPanel.add(new JLabel("Testando"),BorderLayout.EAST);
         //CenterPanel.add(VmPanel,BorderLayout.EAST);
+        this.setContentPane(MainPanel);
+        //consoleTextArea!!!
+        consoleTextArea = new JTextArea();
+        JScrollPane scrollPane = new JScrollPane(consoleTextArea);
+        JPopupMenu popmenu = new JPopupMenu();
+        mitem_clear_log = new JMenuItem("Limpar Console");
+        popmenu.add(mitem_clear_log);
+        consoleTextArea.setComponentPopupMenu(popmenu);
+        consoleTextArea.setEditable(false);
+        consoleTextArea.setText("");
+        consolePanel = new Panel(new BorderLayout());
+        consolePanel.setBackground(new Color(30,32,34));
+        consolePanel.setSize(640,100);
+        consolePanel.add(scrollPane, BorderLayout.CENTER);
+        Panel x = new Panel(new BorderLayout());
+        JLabel consoleTxt = new JLabel("<html><font color='#ABBFDE'>CONSOLE LOG:</font></html>");
+        consoleTxt.setFont(new Font(consoleTxt.getFont().getName(), Font.PLAIN, 9));
+        x.add(consoleTxt, BorderLayout.LINE_START);
+        consolePanel.add(x,BorderLayout.PAGE_START);
+        consolePanel.setLocation(this.getSize().width/3 - 120,this.getSize().height-150);
+        consolePanel.setVisible(false);
+
+        this.getLayeredPane().add(consolePanel, JLayeredPane.POPUP_LAYER);
+
+
+
+        //-- BUTTONS E LISTENERS ---------------------------------------------------------------------------
+
+        mitem_clear_log.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                consoleTextArea.setText("");
+            }
+        });
+        this.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent){
+                if(unchanged == false){
+                    if(showDescartarDialog() == true){
+                        System.exit(0);
+                    }
+                }
+                else{
+                    System.exit(0);
+                }
+            }
+        });
+
+        textArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                if(unchanged == true){
+                    Interface.getInstance().setTitle(Interface.getInstance().getTitle() + " *");
+                    unchanged = false;
+                }
+            }
+        });
+
+        textArea.addCaretListener(new CaretListener() {
+            @Override
+            public void caretUpdate(CaretEvent caretEvent) {
+                int ln=1, col=1;
+                int caretpos = textArea.getCaretPosition();
+                try {
+                    ln=textArea.getLineOfOffset(caretpos);
+                    col=caretpos - textArea.getLineStartOffset(ln);
+                } catch (BadLocationException e) {
+                    e.printStackTrace();
+                }
+                ln++;
+                StatusLabel.setText("Line "+ln+", Col "+col+"    ");
+            }
+        });
+
+        mitem_new.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                //se texto não está em branco,
+                if(textArea.getText().length() > 0){
+                    if(showDescartarDialog() == true){
+                        textArea.setText("");
+                        unchanged = true;
+                        Interface.getInstance().setTitle("TestLab - novo arquivo");
+                        selectedFile = null;
+                    }
+                }else{
+                    textArea.setText("");
+                    unchanged = true;
+                    Interface.getInstance().setTitle("TestLab - novo arquivo");
+                    selectedFile = null;
+                }
+            }
+        });
+
+        mitem_open.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                int returnValue = jfc.showOpenDialog(null);
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    selectedFile = jfc.getSelectedFile();
+                    Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            try {
+                                textArea.setText(Files.readString(Path.of(selectedFile.getPath())));
+                                unchanged = true;
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+            }
+        });
+
+        mitem_save.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                if(selectedFile != null){
+                    Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
+                    //salvar simples
+                    try {//salvamento
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(selectedFile));
+                        writer.write(textArea.getText());
+                        writer.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    unchanged = true;
+                } else{
+                    //salvar como
+                    JFrame parentFrame = new JFrame();
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle("Salvar: ");
+
+                    int userSelection = fileChooser.showSaveDialog(parentFrame);
+
+                    if (userSelection == JFileChooser.APPROVE_OPTION) {
+                        selectedFile = fileChooser.getSelectedFile();
+                        //salvamento
+                        try {
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(selectedFile));
+                            writer.write(textArea.getText());
+                            writer.close();
+                            unchanged = true;
+                            Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+        mitem_saveas.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                JFrame parentFrame = new JFrame();
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Salvar como: ");
+
+                int userSelection = fileChooser.showSaveDialog(parentFrame);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    selectedFile = fileChooser.getSelectedFile();
+                    //salvamento
+                    try {
+                        BufferedWriter writer = new BufferedWriter(new FileWriter(selectedFile));
+                        writer.write(textArea.getText());
+                        writer.close();
+                        unchanged = true;
+                        Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        mitem_exit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                if(unchanged == false){
+                    if(showDescartarDialog() == true){
+                        System.exit(0);
+                    }
+                }
+                else{
+                    System.exit(0);
+                }
+            }
+        });
+
+        mitem_about.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                JOptionPane.showMessageDialog(null, "TestLab é uma IDE para compilação e " +
+                        " para a linguagem LPD, " +
+                        "este programa faz parte de uma disciplina do curso de computação da PUC-CAMPINAS e foi " +
+                        "desenvolvido pelo aluno Marco Antônio De Nadai Filho. 2020/2.");
+            }
+        });
+
 
         BtnVm.addMouseListener(new MouseAdapter() {
             @Override
@@ -129,12 +345,28 @@ public final class Interface extends JFrame {
         BtnComp.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-                int returnValue = jfc.showOpenDialog(null);
+                if(Interface.getInstance().selectedFile != null) {
+                    if(unchanged == false){
+                        if(showSalvarECompilarDialog() == true){
+                            Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
+                            try {//salvamento
+                                BufferedWriter writer = new BufferedWriter(new FileWriter(selectedFile));
+                                writer.write(textArea.getText());
+                                writer.close();
+                            } catch (IOException ee) {
+                                ee.printStackTrace();
+                            }
+                            unchanged = true;
+                            Compilador.getInstance().executa(Interface.getInstance().selectedFile);
+                        }
+                    }
+                    else{
+                        Compilador.getInstance().executa(Interface.getInstance().selectedFile);
+                    }
 
-                if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    File selectedFile = jfc.getSelectedFile();
-                    Compilador.getInstance().executa(selectedFile);
+                }
+                else{
+                    JOptionPane.showMessageDialog(null,"Carregue um arquivo antes de compilar.");
                 }
                 super.mouseClicked(e);
             }
@@ -183,10 +415,43 @@ public final class Interface extends JFrame {
                 }
             }
         });
+        BtnLog.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                toogleConsole();
+                super.mouseClicked(e);
+            }
+        });
     }
-
+    //my-functions-------------
+    public void printConsole(String input){
+        consoleTextArea.setText(consoleTextArea.getText() + input + "\n");
+    }
+    void toogleConsole(){
+        if(consolePanel.isVisible()){
+            consolePanel.setVisible(false);
+        }
+        else
+            consolePanel.setVisible(true);
+    }
+    boolean showDescartarDialog(){
+        Object[] options = { "Sim", "Cancelar" };
+        int x = JOptionPane.showOptionDialog(null, "Deseja descartar o trabalho não salvo?", "Você tem certeza?",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        if(x==0)
+            return true;
+        return false;
+    }
+    boolean showSalvarECompilarDialog(){
+        Object[] options = { "Salvar e continuar", "Cancelar" };
+        int x = JOptionPane.showOptionDialog(null, "Seu código possui mudanças não salvas.", "Como prosseguir?",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+        if(x==0)
+            return true;
+        return false;
+    }
+    //-------------------------
     private void updateInstructions(){
-
         SelectorI.set(VirtualMachine.getInstance().i);
         SelectorI.updateSelection();
         label1.setText(Integer.toString(VirtualMachine.getInstance().i));
@@ -197,7 +462,6 @@ public final class Interface extends JFrame {
             TModS.addRow(x,VirtualMachine.getInstance().M.get(x));
         label2.setText(Integer.toString(VirtualMachine.getInstance().s));
     }
-
     private void createUIComponents() {
         // TODO: place custom component creation code here
         table1 = new JTable();

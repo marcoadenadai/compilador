@@ -30,9 +30,6 @@ public final class Lexico {
 
     public void erro(int line){
         JTextArea txtArea = new JTextArea(TokListToString());
-
-
-
         txtArea.setWrapStyleWord(true);
         JScrollPane scrollP = new JScrollPane(txtArea);
         scrollP.setPreferredSize(new Dimension(500,500));

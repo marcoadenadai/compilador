@@ -12,10 +12,12 @@ public class Main {
             System.err.println( "Failed to initialize LaF" );
         }
         //Home.getInstance().setVisible(true);
-        Interface.getInstance().setVisible(true);
-        Interface.getInstance().setContentPane(new Interface().MainPanel);
-
-
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                Interface.getInstance().setVisible(true);
+                //Interface.getInstance().setContentPane(new Interface().MainPanel);
+            }
+        });
 
     }
 }
