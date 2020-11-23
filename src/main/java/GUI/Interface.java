@@ -220,15 +220,15 @@ public final class Interface extends JFrame {
                 int returnValue = jfc.showOpenDialog(null);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     selectedFile = jfc.getSelectedFile();
-                    Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             try {
                                 textArea.setText(Files.readString(Path.of(selectedFile.getPath())));
-                                unchanged = true;
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                            unchanged = true;
+                            Interface.getInstance().setTitle("TestLab - " + selectedFile.toString());
                         }
                     });
                 }

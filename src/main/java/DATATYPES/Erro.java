@@ -13,6 +13,7 @@ public class Erro {
         virgula_esperada,
         programa_esperado,
         pontovirgulaouvirugla_esperado,
+        pontovirgula_esperado,
         tipo_esperado,
         doispontos_esperado,
         inicio_esperado,
@@ -74,6 +75,9 @@ public class Erro {
                 break;
             case programa_esperado:
                 ret = "Erro sintático encontrado na linha "+errno+", era esperado o simbolo \'programa\'.";
+                break;
+            case pontovirgula_esperado:
+                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \';\' era esperado.";
                 break;
             case pontovirgulaouvirugla_esperado:
                 ret = "Erro sintático encontrado na linha "+errno+", era esperado o simbolo \',\' ou \';\'.";

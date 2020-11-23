@@ -1,6 +1,5 @@
 package COMP;
-import DATATYPES.Erro;
-import DATATYPES.Tok;
+import DATATYPES.*;
 
 public final class Sintatico {
     public static final Sintatico INSTANCE = new Sintatico();
@@ -9,6 +8,9 @@ public final class Sintatico {
     public static Sintatico getInstance() {
         return INSTANCE;
     }
+    //semantico
+    private Tok Tant;
+    private int vars_count = 0;
 
     public Sintatico() {
     }
@@ -24,6 +26,8 @@ public final class Sintatico {
 
     Erro load(){
         i=0;
+        Semantico.getInstance().desempilha();
+        Semantico.getInstance().zeraEscopo();
         lexico_Token();
         if(T==null)
             return new Erro(1,Erro.e.programa_vazio);
@@ -31,6 +35,7 @@ public final class Sintatico {
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
                 //semantico insere_tabela
+                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.programa);
                 lexico_Token();
                 if(token_simbolo() == Tok.s.ponto_virgula){
                     //analisa bloco
@@ -65,6 +70,7 @@ public final class Sintatico {
             //missing programa
             return new Erro(T, Erro.e.programa_esperado);
         }
+        //preciso desempilhar aqui???
         return new Erro(0, Erro.e.sucesso);
     }
 
@@ -90,6 +96,7 @@ public final class Sintatico {
     Erro analisa_et_variaveis(){
         Erro E;
         if(token_simbolo() == Tok.s.var){
+            vars_count = 0;
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
                 while(token_simbolo() == Tok.s.identificador){
@@ -118,17 +125,24 @@ public final class Sintatico {
         do{
             if(token_simbolo() == Tok.s.identificador){
                 //semantico
-                lexico_Token();
-                if(token_simbolo() == Tok.s.virgula || token_simbolo() == Tok.s.doispontos){
-                    if(token_simbolo() == Tok.s.virgula){
-                        lexico_Token();
-                        if(token_simbolo() == Tok.s.doispontos){
-                            return new Erro(T, Erro.e.simbolo_nao_esperado);
+                if(!Semantico.getInstance().pesquisa_duplicvar_tabela(T.getLexema())){
+                    Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.variavel);
+                    lexico_Token();
+                    if(token_simbolo() == Tok.s.virgula || token_simbolo() == Tok.s.doispontos){
+                        if(token_simbolo() == Tok.s.virgula){
+                            lexico_Token();
+                            if(token_simbolo() == Tok.s.doispontos){
+                                return new Erro(T, Erro.e.simbolo_nao_esperado);
+                            }
                         }
+                    }
+                    else{
+                        return new Erro(T, Erro.e.pontovirgulaouvirugla_esperado);
                     }
                 }
                 else{
-                    return new Erro(T, Erro.e.pontovirgulaouvirugla_esperado);
+                    System.out.println("ERRO - analisa_variavel");
+                    //erro
                 }
             }
             else{
@@ -175,7 +189,7 @@ public final class Sintatico {
                 lexico_Token();
             }
             else{
-                return new Erro(T, Erro.e.simbolo_nao_esperado);
+                return new Erro(T, Erro.e.pontovirgula_esperado);
             }
         }
         if(flag == 1){
@@ -188,21 +202,29 @@ public final class Sintatico {
         Erro E;
         lexico_Token();
         if(token_simbolo() == Tok.s.identificador){
-            //azul
-            //vermelho
-            lexico_Token();
-            if(token_simbolo() == Tok.s.ponto_virgula){
-                E = analisa_bloco();
-                if(E.get_errno() != 0)
-                    return E;
+            if(!Semantico.getInstance().pesquisa_declproc_tabela(T.getLexema())){
+                //pesquisa_declproc_tabela(token.lexema) se nao encontrou
+                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.procedimento); //rotulo!
+                //vermelho
+                lexico_Token();
+                if(token_simbolo() == Tok.s.ponto_virgula){
+                    E = analisa_bloco();
+                    if(E.get_errno() != 0)
+                        return E;
+                }
+                else{
+                    return new Erro(T, Erro.e.simbolo_nao_esperado);
+                }
+                //senao erro declproc
             }
             else{
-                return new Erro(T, Erro.e.simbolo_nao_esperado);
+                //erro
+                System.out.println("ERRO - anlaisa_declaracao_procedimento - pesquisa_declproc_tabela");
             }
         }else{
             return new Erro(T, Erro.e.identificador_esperado);
         }
-        //DESEMPILHA EM AZUL
+        Semantico.getInstance().desempilha();
         return new Erro(0, Erro.e.vazio);
     }
 
@@ -210,28 +232,45 @@ public final class Sintatico {
         Erro E;
         lexico_Token();
         if(token_simbolo() == Tok.s.identificador){
-            lexico_Token();
-            if(token_simbolo() == Tok.s.doispontos){
+            if(!Semantico.getInstance().pesquisa_declfunc_tabela(T.getLexema())){
+                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.funcao); //rotulo!
                 lexico_Token();
-                if(token_simbolo() == Tok.s.inteiro || token_simbolo() == Tok.s.booleano){
+                if(token_simbolo() == Tok.s.doispontos){
                     lexico_Token();
-                    if(token_simbolo() == Tok.s.ponto_virgula){
-                        E=analisa_bloco();
-                        if(E.get_errno() !=0)
-                            return E;
-                    }
-                    else{
-                        return new Erro(T, Erro.e.simbolo_nao_esperado);
+                    if(token_simbolo() == Tok.s.inteiro || token_simbolo() == Tok.s.booleano){
+                        //semantico azul
+                        if(token_simbolo() == Tok.s.inteiro){
+                            //atribui funcao tipo inteiro
+                            Semantico.getInstance().setUltimoTipo(true);
+                        }
+                        else{
+                            //atribui funcao tipo booleano
+                            Semantico.getInstance().setUltimoTipo(false);
+                        }
+                        lexico_Token();
+                        if(token_simbolo() == Tok.s.ponto_virgula){
+                            E=analisa_bloco();
+                            if(E.get_errno() !=0)
+                                return E;
+                        }
+                        else{
+                            return new Erro(T, Erro.e.simbolo_nao_esperado);
+                        }
+                    }else{
+                        return new Erro(T, Erro.e.tipo_esperado);
                     }
                 }else{
-                    return new Erro(T, Erro.e.tipo_esperado);
+                    return new Erro(T, Erro.e.doispontos_esperado);
                 }
-            }else{
-                return new Erro(T, Erro.e.doispontos_esperado);
+            }
+            else{
+                //erro
+                System.out.println("ERRO - analisar_declaracao_funcao - psquisa_declfunc_tabela");
             }
         }else{
             return new Erro(T, Erro.e.identificador_esperado);
         }
+        Semantico.getInstance().desempilha();
         return new Erro(0, Erro.e.vazio);
     }
 
@@ -313,17 +352,23 @@ public final class Sintatico {
     }
 
     Erro chamada_procedimento(){
+        //Verificar se identificador é procedimento (sim=OK) e pesquisa_declproc (sim=OK)
+        if(!Semantico.getInstance().pesquisa_declproc_tabela(T.getLexema())){
+            //erro
+        }//!!@@
         return new Erro(0, Erro.e.vazio);
     }
 
     Erro chamada_funcao(){
         lexico_Token();
-        //!!!ATENCAO AQUI, TALVEZ PRECISE MEXER
-        //POIS analisa_fator chama esta função considerando uma possivel variavel assim como uma possivel funcao
         return new Erro(0, Erro.e.vazio);
     }
 
     Erro analisa_atribuicao() {
+        //Simbolo s = Semantico.getInstance().pesquisa_tabela(T.getLexema());
+        //identificar o tipo do retorno da expressao, tem que ser igual ao
+        //identificador
+        //talvez precise do Tant
         Erro E;
         lexico_Token();
         E = analisa_expressao();
@@ -383,11 +428,23 @@ public final class Sintatico {
     Erro analisa_fator(){
         Erro E;
         if(token_simbolo() == Tok.s.identificador){
-            //blablabla azul
-            E=chamada_funcao();
-            if(E.get_errno() != 0)
-                return E;
-            //blablabla azul
+            Simbolo s =Semantico.getInstance().pesquisa_tabela(T.getLexema());
+            if(s!=null){
+                if(s instanceof Variavel || s instanceof Funcao){
+                    //blablabla azul
+                    E=chamada_funcao();
+                    if(E.get_errno() != 0)
+                        return E;
+                    //blablabla azul
+                }else {
+                    //erro
+                    System.out.println("ERRO - analisa_fator - variavel ou funcão TAL nao foi declarada anteriormente.");
+                }
+            }
+            else{
+                //erro
+                System.out.println("ERRO - analisa_fator - pesquisa_tabela");
+            }
         }else if( token_simbolo() == Tok.s.numero){
             lexico_Token();
         }else if( token_simbolo() == Tok.s.nao){
@@ -417,13 +474,17 @@ public final class Sintatico {
         if(token_simbolo() == Tok.s.abre_parenteses){
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
-                //azul
-                //azul
-                lexico_Token();
-                if(token_simbolo() == Tok.s.fecha_parenteses){
+                if(Semantico.getInstance().pesquisa_declvar_tabela(T.getLexema())){
                     lexico_Token();
-                } else {
-                    return new Erro(T, Erro.e.fechaparenteses_esperado);
+                    if(token_simbolo() == Tok.s.fecha_parenteses){
+                        lexico_Token();
+                    } else {
+                        return new Erro(T, Erro.e.fechaparenteses_esperado);
+                    }
+                }
+                else{
+                    //erro
+                    System.out.println("ERRO - analisa_leia");
                 }
             } else {
                 return new Erro(T, Erro.e.identificador_esperado);
@@ -440,13 +501,17 @@ public final class Sintatico {
         if(token_simbolo() == Tok.s.abre_parenteses){
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
-                //azul
-                //azul
-                lexico_Token();
-                if(token_simbolo() == Tok.s.fecha_parenteses){
+                if(Semantico.getInstance().pesquisa_declvarfunc_tabela(T.getLexema())){
                     lexico_Token();
-                } else {
-                    return new Erro(T, Erro.e.fechaparenteses_esperado);
+                    if(token_simbolo() == Tok.s.fecha_parenteses){
+                        lexico_Token();
+                    } else {
+                        return new Erro(T, Erro.e.fechaparenteses_esperado);
+                    }
+                }
+                else{
+                    //erro
+                    System.out.println("ERRO - analisa_escreva - pesquisa_declvarfunc");
                 }
             } else {
                 return new Erro(T, Erro.e.identificador_esperado);
