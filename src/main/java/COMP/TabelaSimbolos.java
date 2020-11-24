@@ -38,4 +38,7 @@ public final class TabelaSimbolos {
         tbl_simbolos.remove(index);
     }
 
+    public void reseta(){
+        tbl_simbolos.clear();
+    }
 }

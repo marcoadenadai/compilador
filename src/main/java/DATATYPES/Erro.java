@@ -21,7 +21,17 @@ public class Erro {
         abreparenteses_esperado,
         faca_esperado,
         entao_esperado,
-
+        //semantico
+        duplicvar,
+        declproc,
+        declfunc,
+        declvarfunc,
+        declvar,
+        expressao_incompativel,
+        atrib_int2bool,
+        atrib_bool2int,
+        exp_booleana_esperada,
+        duplicidade,
     };
     private e type;
     private int errno;
@@ -54,54 +64,85 @@ public class Erro {
                 break;
             //lexico------------------------------------------------------------------
             case simbolo_invalido:
-                ret = "Erro lexical encontrado na linha "+errno+", o símbolo \'"+lexema+"\' não é válido.";
+                ret = "Erro lexical na linha "+errno+", o símbolo \'"+lexema+"\' não é válido.";
                 break;
             case programa_vazio:
-                ret = "Erro encontrado na linha "+errno+", programa vazio. " +
+                ret = "Erro na linha "+errno+", programa vazio. " +
                         "Verifique se não existem comentários abertos.";
                 break;
             //sintatico---------------------------------------------------------------
             case simbolo_nao_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", equivoco no símbolo \'"+lexema+"\'.";
+                ret = "Erro sintático na linha "+errno+", equivoco no símbolo \'"+lexema+"\'.";
                 break;
             case ponto_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", um \'.\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", um \'.\' era esperado.";
                 break;
             case virgula_esperada:
-                ret = "Erro sintático encontrado na linha "+errno+", uma \',\' era esperada.";
+                ret = "Erro sintático na linha "+errno+", uma \',\' era esperada.";
                 break;
             case identificador_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", um identificador era esperado.";
+                ret = "Erro sintático na linha "+errno+", um identificador era esperado.";
                 break;
             case programa_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", era esperado o simbolo \'programa\'.";
+                ret = "Erro sintático na linha "+errno+", era esperado o simbolo \'programa\'.";
                 break;
             case pontovirgula_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \';\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", o simbolo \';\' era esperado.";
                 break;
             case pontovirgulaouvirugla_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", era esperado o simbolo \',\' ou \';\'.";
+                ret = "Erro sintático na linha "+errno+", era esperado o simbolo \',\' ou \';\'.";
                 break;
             case tipo_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", um tipo (inteiro ou booleano) era esperado.";
+                ret = "Erro sintático na linha "+errno+", um tipo (inteiro ou booleano) era esperado.";
                 break;
             case doispontos_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", era esperado o simbolo \':\'.";
+                ret = "Erro sintático na linha "+errno+", era esperado o simbolo \':\'.";
                 break;
             case inicio_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \'inicio\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", o simbolo \'inicio\' era esperado.";
                 break;
             case abreparenteses_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \'(\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", o simbolo \'(\' era esperado.";
                 break;
             case fechaparenteses_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \')\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", o simbolo \')\' era esperado.";
                 break;
             case faca_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \'faca\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", o simbolo \'faca\' era esperado.";
                 break;
             case entao_esperado:
-                ret = "Erro sintático encontrado na linha "+errno+", o simbolo \'entao\' era esperado.";
+                ret = "Erro sintático na linha "+errno+", o simbolo \'entao\' era esperado.";
+                break;
+            //sintatico---------------------------------------------------------------
+            case duplicvar:
+                ret = "Erro semântico na linha "+errno+", o nome da variavel \'"+lexema+"\' já foi utilizado anteriormente";
+                break;
+            case duplicidade:
+                ret = "Erro semântico na linha "+errno+", o nome \'"+lexema+"\' já foi utilizado anteriormente";
+                break;
+            case declproc:
+                ret = "Erro semântico na linha "+errno+", declaração do procedimento \'"+lexema+"\' não encontrada.";
+                break;
+            case declfunc:
+                ret = "Erro semântico na linha "+errno+", declaração da função \'"+lexema+"\' não encontrada.";
+                break;
+            case declvarfunc:
+                ret = "Erro semântico na linha "+errno+", varíavel ou função \'"+lexema+"\' não foi declarada.";
+                break;
+            case declvar:
+                ret = "Erro semântico na linha "+errno+", declaração da varíavel \'"+lexema+"\' não encontrada.";
+                break;
+            case expressao_incompativel:
+                ret = "Erro semântico na linha "+errno+", existe(m) incompatibilidade(s) de tipos na expressão.";
+                break;
+            case atrib_int2bool:
+                ret = "Erro semântico na linha "+errno+", não é possível atribuir uma expressao booleana a \'"+lexema+"\' (inteiro).";
+                break;
+            case atrib_bool2int:
+                ret = "Erro semântico na linha "+errno+", não é possível atribuir uma expressao inteira a \'"+lexema+"\' (booleano).";
+                break;
+            case exp_booleana_esperada:
+                ret = "Erro semântico na linha "+errno+", após \'"+lexema+"\' era esperado uma expressão de resultado booleano.";
                 break;
         }
         return ret;

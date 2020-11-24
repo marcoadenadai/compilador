@@ -42,6 +42,9 @@ public class Tok {
         doispontos,
         verdadeiro,
         falso,
+        //
+        positivo,
+        negativo,
     };
     private s simbolo;
     private int line;
