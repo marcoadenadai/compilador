@@ -14,7 +14,7 @@ public final class Sintatico {
     private Tok Tant;
     private int vars_count = 0;
     private boolean dentro_funcao = false;
-    private boolean ultimo_comando = false;
+    private ArrayList<Tok> expressao;
 
     public Sintatico() {
     }
@@ -389,23 +389,21 @@ public final class Sintatico {
                     return new Erro(Tant, Erro.e.err_retorno);
                 tipo_inteiro = ((Funcao)s).getTipo();
             }
-
-            int tipo_exp = Semantico.getInstance().analisaExpressao(Semantico.getInstance().posFixa(i));
+            expressao = new ArrayList<Tok>();
+            Erro E;
+            lexico_Token();
+            E = analisa_expressao();
+            if(E.get_errno() != 0)
+                return E;
+            adequaUnarios();
+            expressao = Semantico.getInstance().posFixa(expressao);
+            int tipo_exp = Semantico.getInstance().analisaExpressao(expressao);
             if(tipo_exp >= 0){
                 if(tipo_exp == 1 && tipo_inteiro==false){
                     return new Erro(Tant, Erro.e.atrib_bool2int);
                 }
                 else if(tipo_exp == 0 && tipo_inteiro==true){
                     return new Erro(Tant, Erro.e.atrib_int2bool);
-                }
-                else{
-                    //
-                    Erro E;
-                    lexico_Token();
-                    E = analisa_expressao();
-                    if(E.get_errno() != 0)
-                        return E;
-                    //
                 }
             }
             else{
@@ -426,6 +424,7 @@ public final class Sintatico {
             return E;
         if(token_simbolo() == Tok.s.maior || token_simbolo() == Tok.s.maiorig || token_simbolo() == Tok.s.ig
                 || token_simbolo() == Tok.s.menor || token_simbolo() == Tok.s.menorig || token_simbolo() == Tok.s.dif){
+            expressao.add(T);
             lexico_Token();
             E = analisa_expressao_simples();
             if(E.get_errno() != 0)
@@ -437,6 +436,7 @@ public final class Sintatico {
     Erro analisa_expressao_simples() {
         Erro E;
         if(token_simbolo() == Tok.s.mais || token_simbolo() == Tok.s.menos) {
+            expressao.add(T);
             lexico_Token();
         }
         E = analisa_termo();
@@ -444,6 +444,7 @@ public final class Sintatico {
             return E;
         while((token_simbolo() == Tok.s.mais) || (token_simbolo() == Tok.s.menos) ||
                 (token_simbolo() == Tok.s.ou)){
+            expressao.add(T);
             lexico_Token();
             E = analisa_termo();
             if(E.get_errno() != 0)
@@ -459,6 +460,7 @@ public final class Sintatico {
             return E;
         while(token_simbolo() == Tok.s.mult || token_simbolo() == Tok.s.div ||
                 token_simbolo() == Tok.s.e){
+            expressao.add(T);
             lexico_Token();
             E=analisa_fator();
             if(E.get_errno() != 0)
@@ -472,7 +474,8 @@ public final class Sintatico {
         if(token_simbolo() == Tok.s.identificador){
             Simbolo s =Semantico.getInstance().pesquisa_tabela(T.getLexema());
             if(s!=null){
-                    //blablabla azul
+                    //blablabla azul6
+                expressao.add(T);
                     E=chamada_funcao();
                     if(E.get_errno() != 0)
                         return E;
@@ -482,21 +485,26 @@ public final class Sintatico {
                 return new Erro(T, Erro.e.declvarfunc);
             }
         }else if( token_simbolo() == Tok.s.numero){
+            expressao.add(T);
             lexico_Token();
         }else if( token_simbolo() == Tok.s.nao){
+            expressao.add(T);
             lexico_Token();
             E=analisa_fator();
             if(E.get_errno() != 0)
                 return E;
         }else if( token_simbolo() == Tok.s.abre_parenteses){
+            expressao.add(T);
             lexico_Token();
             analisa_expressao();//(token)????!!!!????
             if(token_simbolo() == Tok.s.fecha_parenteses){
+                expressao.add(T);
                 lexico_Token();
             }else{
                 return new Erro(T, Erro.e.simbolo_nao_esperado);
             }
         }else if ( token_simbolo() == Tok.s.verdadeiro || token_simbolo() == Tok.s.falso){
+            expressao.add(T);
             lexico_Token();
         }else{
             return new Erro(T, Erro.e.simbolo_nao_esperado);
@@ -558,17 +566,21 @@ public final class Sintatico {
     }
 
     Erro analisa_enquanto(){
-        int tipo_exp = Semantico.getInstance().analisaExpressao(Semantico.getInstance().posFixa(i));
-        if(tipo_exp != 0){
-            return new Erro(T,Erro.e.exp_booleana_esperada);
-        }
+        expressao = new ArrayList<Tok>();
         Erro E;
         //int auxrot1, auxrot2;
         //vermelho
+        Tant=T;
         lexico_Token();
         E = analisa_expressao();
         if(E.get_errno() != 0)
             return E;
+        adequaUnarios();
+        expressao = Semantico.getInstance().posFixa(expressao);
+        int tipo_exp = Semantico.getInstance().analisaExpressao(expressao);
+        if(tipo_exp != 0){
+            return new Erro(Tant,Erro.e.exp_booleana_esperada);
+        }
         if(token_simbolo() == Tok.s.faca){
             //veremlho
             lexico_Token();
@@ -582,15 +594,19 @@ public final class Sintatico {
     }
 
     Erro analisa_se(){
-        int tipo_exp = Semantico.getInstance().analisaExpressao(Semantico.getInstance().posFixa(i));
-        if(tipo_exp != 0){
-            return new Erro(T,Erro.e.exp_booleana_esperada);
-        }
+        expressao = new ArrayList<Tok>();
         Erro E;
+        Tant=T;
         lexico_Token();
         E =analisa_expressao();
         if(E.get_errno() != 0)
             return E;
+        adequaUnarios();
+        expressao = Semantico.getInstance().posFixa(expressao);
+        int tipo_exp = Semantico.getInstance().analisaExpressao(expressao);
+        if(tipo_exp != 0){
+            return new Erro(Tant,Erro.e.exp_booleana_esperada);
+        }
         if(token_simbolo() == Tok.s.entao){
             lexico_Token();
             E =analisa_comando_simples();
@@ -606,6 +622,21 @@ public final class Sintatico {
             return new Erro(T, Erro.e.entao_esperado);
         }
         return new Erro(0, Erro.e.vazio);
+    }
+
+    ///////
+    private void adequaUnarios() {
+        for(int i=0;i<expressao.size();i++) {
+            if(expressao.get(i).getSimbolo()==Tok.s.mais || expressao.get(i).getSimbolo()==Tok.s.menos) {
+                if(i==0 || expressao.get(i-1).getSimbolo()==Tok.s.abre_parenteses
+                        || Semantico.getInstance().isOperador(expressao.get(i-1).getSimbolo())) {
+                    if(expressao.get(i).getSimbolo()==Tok.s.mais)
+                        expressao.get(i).setSimbolo(Tok.s.positivo);
+                    else
+                        expressao.get(i).setSimbolo(Tok.s.negativo);
+                }
+            }
+        }
     }
 
 

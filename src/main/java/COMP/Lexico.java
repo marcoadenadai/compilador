@@ -248,19 +248,17 @@ public final class Lexico {
                       || (char)c == '\t' || (char)c == '\r' || (char)c == '\n') {
                     //trata { comentarios }
                     if ((char) c == '{') {
-                        int comment_count=1;//IMPLEMENTACAO CHAVES COMPOSTAS
+                        /*int comment_count=1;//IMPLEMENTACAO CHAVES COMPOSTAS
                         while (c != -1 && comment_count > 0) {
                             c = br.read();
                             if((char)c == '{') {comment_count++;}
                             else if((char)c == '}') {comment_count--;}
                             if((char)c == '\n') {ln++;}
-                        }
-                        /* SO PERMITE CHAVES SIMPLES!!
+                        }*/
                         while (c != -1 && (char) c != '}') {
                             c = br.read();
                             if((char)c == '\n') {ln++;}
                         }
-                        */
                         c = br.read();
                         if((char)c == '\n') {ln++;}
                     }

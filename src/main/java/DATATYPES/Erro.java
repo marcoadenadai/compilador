@@ -146,7 +146,7 @@ public class Erro {
                 ret = "Erro semântico na linha "+errno+", não é possível atribuir uma expressao inteira a \'"+lexema+"\' (booleano).";
                 break;
             case exp_booleana_esperada:
-                ret = "Erro semântico na linha "+errno+", após \'"+lexema+"\' era esperado uma expressão de resultado booleano.";
+                ret = "Erro semântico na linha "+errno+", após \'"+lexema+"\' era esperado uma expressão VÁLIDA de resultado booleano.";
                 break;
             case err_retorno:
                 ret = "Erro semântico na linha "+errno+", uma função não pode receber valores, exceto internamente em forma de retorno.";

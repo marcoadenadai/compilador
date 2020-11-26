@@ -244,7 +244,7 @@ public final class Semantico {
         return false;
     }
 
-    private boolean isOperador(Tok.s simbolo){
+    public boolean isOperador(Tok.s simbolo){
         if(simbolo == Tok.s.ou || simbolo == Tok.s.e || simbolo == Tok.s.nao
                 || simbolo == Tok.s.maior || simbolo == Tok.s.maiorig || simbolo == Tok.s.menor
         || simbolo == Tok.s.menorig || simbolo == Tok.s.ig || simbolo == Tok.s.dif ||
@@ -255,62 +255,36 @@ public final class Semantico {
         return false;
     }
 
-    public ArrayList<Tok> posFixa(int pos){
-        ArrayList<Tok> ret = null, tmp = new ArrayList<Tok>();
+    public ArrayList<Tok> posFixa(ArrayList<Tok>exp){
+        ArrayList<Tok> ret = new ArrayList<Tok>();
         Stack<Tok> pilha = new Stack<Tok>();
-        Tok T;
-        Tok.s simbolo;
-        for(int i=pos;i<Lexico.getInstance().getLength();i++){
-            T = Lexico.getInstance().getToken(i);
-            simbolo = T.getSimbolo();
-            if(simbolo != Tok.s.dif && simbolo != Tok.s.ig && simbolo != Tok.s.menor && simbolo != Tok.s.menorig
-               && simbolo != Tok.s.maior  && simbolo != Tok.s.maiorig
-               && simbolo != Tok.s.mais && simbolo != Tok.s.menos && simbolo != Tok.s.identificador && simbolo != Tok.s.numero
-               && simbolo != Tok.s.abre_parenteses  && simbolo != Tok.s.fecha_parenteses  && simbolo != Tok.s.verdadeiro
-               && simbolo != Tok.s.falso && simbolo != Tok.s.nao && simbolo != Tok.s.ou && simbolo != Tok.s.mult
-               && simbolo != Tok.s.div && simbolo != Tok.s.e){
-                break;
-            }
-            //adequa os unarios
-            if(simbolo == Tok.s.mais || simbolo == Tok.s.menos){
-                if(i==0 || Lexico.getInstance().getToken(i-1).getSimbolo()==Tok.s.abre_parenteses ||
-                        isOperador(Lexico.getInstance().getToken(i-1).getSimbolo()) ){
-                    if(simbolo == Tok.s.mais){
-                        T.setSimbolo(Tok.s.positivo);
-                    }else{
-                        T.setSimbolo(Tok.s.negativo);
-                    }
-                }
-            }
-            tmp.add(T);
-        }
-        //comeca a pos fixa de vdd
-        if(tmp.size() > 0)
-            ret = new ArrayList<Tok>();
-        else
-            return null;
-        //comeca a pos fixa de vdd
-        for(int i=0;i<tmp.size();i++) {
-            T = tmp.get(i);
-            simbolo = T.getSimbolo();
-            if (isOperando(simbolo)) {
-                ret.add(T);
-            } else if (isOperador(simbolo)) {
-                while (!pilha.empty() && prioridades.get(pilha.peek().getSimbolo()) >= prioridades.get(simbolo)) {
+
+        for(int i=0; i<exp.size();i++) {
+            Tok.s simbolo = exp.get(i).getSimbolo();
+
+            if(isOperando(simbolo))
+                ret.add(exp.get(i));
+            else if (isOperador(simbolo)) {
+                while(!pilha.empty() && prioridades.get(pilha.peek().getSimbolo())>=prioridades.get(simbolo) )
                     ret.add(pilha.pop());
-                }
-                pilha.push(T);
-            } else if (simbolo == Tok.s.abre_parenteses) {
-                pilha.push(T);
-            } else if (simbolo == Tok.s.fecha_parenteses) {
-                while (pilha.peek().getSimbolo() != Tok.s.abre_parenteses) {
+                pilha.push(exp.get(i));
+            }
+            else if(simbolo==Tok.s.abre_parenteses)
+                pilha.push(exp.get(i));
+            else if(simbolo==Tok.s.fecha_parenteses) {
+                while(pilha.peek().getSimbolo()!=Tok.s.abre_parenteses)
                     ret.add(pilha.pop());
-                }
                 pilha.pop();
             }
+
         }
-        while(!pilha.empty())
+        while(!pilha.empty()) {
             ret.add(pilha.pop());
+        }
+        /* IMPRESSAO
+        for(int i=0;i<ret.size();i++)
+            System.out.println("i="+i+" , "+ret.get(i).getLexema());
+        System.out.println("-------------------------");*/
         return ret;
     }
 
@@ -323,7 +297,7 @@ public final class Semantico {
                 if(T.getSimbolo() == Tok.s.nao || T.getSimbolo() == Tok.s.positivo || T.getSimbolo() == Tok.s.negativo)
                     continue;
                 if(T.getSimbolo() == Tok.s.e || T.getSimbolo() == Tok.s.ou){ //recebe booleanos
-                    if(tipos.get(tipos.size()-1)!=0 && tipos.get(tipos.size()-2)!=0)
+                    if(tipos.get(tipos.size()-1)!=0 || tipos.get(tipos.size()-2)!=0)
                         return -1;
                     tipos.remove(tipos.size()-1); // gera booleano
                 }
@@ -331,7 +305,7 @@ public final class Semantico {
                         || T.getSimbolo() == Tok.s.menorig || T.getSimbolo() == Tok.s.ig
                         || T.getSimbolo() == Tok.s.dif){
                     //recebe 2 inteiros
-                    if(tipos.get(tipos.size()-1)!=1 && tipos.get(tipos.size()-2)!=1)
+                    if(tipos.get(tipos.size()-1)!=1 || tipos.get(tipos.size()-2)!=1)
                         return -2;
                     tipos.remove(tipos.size()-1);
                     tipos.remove(tipos.size()-1);
@@ -339,27 +313,28 @@ public final class Semantico {
                 }
                 if(T.getSimbolo() == Tok.s.mais || T.getSimbolo() == Tok.s.menos || T.getSimbolo() == Tok.s.mult ||
                 T.getSimbolo() == Tok.s.div){//recebe inteiros
-                    if(tipos.get(tipos.size()-1)!=1 && tipos.get(tipos.size()-2)!=1 ){
+                    if (tipos.get(tipos.size() - 1) != 1 || tipos.get(tipos.size() - 2) != 1) {
                         return -2;
+                    } else {
+                        tipos.remove(tipos.size() - 1); //gera inteiros
                     }
-                    tipos.remove(tipos.size()-1); //gera inteiros
                 }
             }
-            else{
+            else{//operandos
                 if( T.getSimbolo() == Tok.s.numero)
                     tipos.add(1); // inteiro
                 else if( T.getSimbolo() == Tok.s.identificador){
                     Simbolo s = pesquisa_tabela(T.getLexema());
-                    if(s instanceof Variavel && ((Variavel)s).getTipo() == true){//inteiro
+                    if(s instanceof Variavel && ((Variavel) s).getTipo()){//inteiro
                         tipos.add(1);
                     }
-                    else if(s instanceof Variavel && ((Variavel)s).getTipo() == false){//booleano
+                    else if(s instanceof Variavel && !((Variavel) s).getTipo()){//booleano
                         tipos.add(0);
                     }
-                    else if(s instanceof Funcao && ((Funcao)s).getTipo() == true){//inteiro
+                    else if(s instanceof Funcao && ((Funcao) s).getTipo()){//inteiro
                         tipos.add(1);
                     }
-                    else if(s instanceof Funcao && ((Funcao)s).getTipo() == false){//booleano
+                    else if(s instanceof Funcao && !((Funcao) s).getTipo()){//booleano
                         tipos.add(0);
                     }
                 }
@@ -368,7 +343,6 @@ public final class Semantico {
             }
         }
         return tipos.get(0);
-        //return 0;
     }
 
     public void coloca_tipo_tabela(int count, boolean tipo){
