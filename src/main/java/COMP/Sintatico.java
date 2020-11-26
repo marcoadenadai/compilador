@@ -13,7 +13,8 @@ public final class Sintatico {
     //semantico
     private Tok Tant;
     private int vars_count = 0;
-    private boolean retorno_valido = false;
+    private boolean dentro_funcao = false;
+    private boolean ultimo_comando = false;
 
     public Sintatico() {
     }
@@ -29,6 +30,7 @@ public final class Sintatico {
 
     Erro load(){
         i=0;
+        dentro_funcao = false;
         Semantico.getInstance().inicializa();
         lexico_Token();
         if(T==null)
@@ -107,6 +109,7 @@ public final class Sintatico {
                     if(E.get_errno() != 0)
                         return E;
                     if(token_simbolo() == Tok.s.ponto_virgula){
+                        vars_count = 0;
                         lexico_Token();
                     }
                     else{
@@ -236,6 +239,7 @@ public final class Sintatico {
         if(token_simbolo() == Tok.s.identificador){
             //if(!Semantico.getInstance().pesquisa_declfunc_tabela(T.getLexema())){
             if(!Semantico.getInstance().pesquisa_duplicidade_tabela(T.getLexema())){
+                String nome_func = T.getLexema();
                 Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.funcao); //rotulo!
                 lexico_Token();
                 if(token_simbolo() == Tok.s.doispontos){
@@ -243,16 +247,21 @@ public final class Sintatico {
                     if(token_simbolo() == Tok.s.inteiro || token_simbolo() == Tok.s.booleano){
                         //semantico azul
                         if(token_simbolo() == Tok.s.inteiro){
-                            //atribui funcao tipo inteiro
-                            Semantico.getInstance().setUltimoTipo(true);
+                            Semantico.getInstance().setUltimoTipo(true);//atribui funcao tipo inteiro
                         }
                         else{
-                            //atribui funcao tipo booleano
-                            Semantico.getInstance().setUltimoTipo(false);
+                            Semantico.getInstance().setUltimoTipo(false);//atribui funcao tipo booleano
                         }
                         lexico_Token();
                         if(token_simbolo() == Tok.s.ponto_virgula){
+                            dentro_funcao = true ;
+                            int pos_inicio_func = i;
                             E=analisa_bloco();
+                            if(E.get_errno() !=0)
+                                return E;
+                            //nao existiu erro sintatico ate o fim da funcao
+                            int pos_final_func = i-1;
+                            E=Semantico.getInstance().valida_retorno(nome_func,pos_inicio_func,pos_final_func);
                             if(E.get_errno() !=0)
                                 return E;
                         }
@@ -273,6 +282,7 @@ public final class Sintatico {
             return new Erro(T, Erro.e.identificador_esperado);
         }
         Semantico.getInstance().desempilha();
+        dentro_funcao = false;
         return new Erro(0, Erro.e.vazio);
     }
 
@@ -374,9 +384,12 @@ public final class Sintatico {
         if(s!=null){
             if(s instanceof Variavel){
                 tipo_inteiro = ((Variavel)s).getTipo();
-            }else { tipo_inteiro = ((Funcao)s).getTipo(); }
-            //verifica retorno da expressao, tem que ser igual ao tipo_inteiro (cuidado com retorno de erro Tant!!!)
-            //todo !!!!!
+            }else {
+                if(dentro_funcao == false)
+                    return new Erro(Tant, Erro.e.err_retorno);
+                tipo_inteiro = ((Funcao)s).getTipo();
+            }
+
             int tipo_exp = Semantico.getInstance().analisaExpressao(Semantico.getInstance().posFixa(i));
             if(tipo_exp >= 0){
                 if(tipo_exp == 1 && tipo_inteiro==false){

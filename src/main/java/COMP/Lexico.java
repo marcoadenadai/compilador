@@ -204,9 +204,9 @@ public final class Lexico {
                     ret = new Tok("!=",ln.get(),Tok.s.dif);
                     br.read();
                 }
-                else{
+                /*else{
                     erro(ln.get());
-                }
+                }*/
             }
         }
         else if ((char)c == ';' || (char)c == ',' || (char)c == '(' || (char)c == ')' || (char)c == '.' ){
@@ -229,9 +229,9 @@ public final class Lexico {
                     break;
             }
         }
-        else{
+        /*else{
             erro(ln.get());
-        }
+        }*/
         return ret;
     }
 //--------------------
@@ -248,10 +248,19 @@ public final class Lexico {
                       || (char)c == '\t' || (char)c == '\r' || (char)c == '\n') {
                     //trata { comentarios }
                     if ((char) c == '{') {
+                        int comment_count=1;//IMPLEMENTACAO CHAVES COMPOSTAS
+                        while (c != -1 && comment_count > 0) {
+                            c = br.read();
+                            if((char)c == '{') {comment_count++;}
+                            else if((char)c == '}') {comment_count--;}
+                            if((char)c == '\n') {ln++;}
+                        }
+                        /* SO PERMITE CHAVES SIMPLES!!
                         while (c != -1 && (char) c != '}') {
                             c = br.read();
                             if((char)c == '\n') {ln++;}
                         }
+                        */
                         c = br.read();
                         if((char)c == '\n') {ln++;}
                     }
@@ -270,7 +279,7 @@ public final class Lexico {
                             c = br.read();//!!!
                         }
                         else{
-                            erro(ln);
+                            /*erro(ln);*/
                             return new Erro(ln,Erro.e.simbolo_invalido);
                         }
                     }

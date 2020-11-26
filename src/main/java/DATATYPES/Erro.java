@@ -32,6 +32,9 @@ public class Erro {
         atrib_bool2int,
         exp_booleana_esperada,
         duplicidade,
+        err_retorno,
+        err_retorno2,
+        err_unreachable,
     };
     private e type;
     private int errno;
@@ -49,6 +52,7 @@ public class Erro {
         this.type = type;
     }
 
+
     public int get_errno(){ return errno; }
     //public e get_etype() {return type;}
 
@@ -64,7 +68,7 @@ public class Erro {
                 break;
             //lexico------------------------------------------------------------------
             case simbolo_invalido:
-                ret = "Erro lexical na linha "+errno+", o símbolo \'"+lexema+"\' não é válido.";
+                ret = "Erro lexical na linha "+errno+", existe(m) símbolo(s) inválido.";
                 break;
             case programa_vazio:
                 ret = "Erro na linha "+errno+", programa vazio. " +
@@ -143,6 +147,15 @@ public class Erro {
                 break;
             case exp_booleana_esperada:
                 ret = "Erro semântico na linha "+errno+", após \'"+lexema+"\' era esperado uma expressão de resultado booleano.";
+                break;
+            case err_retorno:
+                ret = "Erro semântico na linha "+errno+", uma função não pode receber valores, exceto internamente em forma de retorno.";
+                break;
+            case err_retorno2:
+                ret = "Erro semântico na linha "+errno+", a função precisa ter um retorno válido antes do fim.";
+                break;
+            case err_unreachable:
+                ret = "Erro semântico na linha "+errno+", código após retorno inacessível.";
                 break;
         }
         return ret;

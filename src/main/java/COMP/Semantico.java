@@ -314,52 +314,8 @@ public final class Semantico {
         return ret;
     }
 
-
-    public int analisaExpressao(ArrayList<Tok> exp){//-1 = erro, 0= booleano, 1=inteiro
-        /*ArrayList<Integer> tipos = new ArrayList<Integer>();
-        for(Tok T : exp){
-            System.out.println("-->"+T.getLexema());//print pos fixa
-            if(isOperador(T.getSimbolo())){//VERIFICA OPERADORES
-                if(T.getSimbolo() == Tok.s.nao){
-                    continue;
-                }
-                else if(T.getSimbolo() == Tok.s.positivo || T.getSimbolo() == Tok.s.negativo){
-                    continue;
-                }
-                //////todo
-            }
-            else if(isOperando(T.getSimbolo())){//VERIFICA OPERANDOS
-                if(T.getSimbolo() == Tok.s.falso || T.getSimbolo() == Tok.s.verdadeiro)
-                    tipos.add(0);//booleano
-                else if(T.getSimbolo() == Tok.s.numero)
-                    tipos.add(1);//inteiro
-                else if(T.getSimbolo() == Tok.s.identificador){
-                    Simbolo s = pesquisa_tabela(T.getLexema());
-                    if(s==null)
-                        return -1;//ERRO
-                    else{
-                        if(s instanceof Variavel){
-                            if(((Variavel) s).getTipo())
-                                tipos.add(1);//inteiro
-                            else
-                                tipos.add(0);//booleano
-                        }
-                        else{
-                            if(((Funcao) s).getTipo())
-                                tipos.add(1);//inteiro
-                            else
-                                tipos.add(0);//booleano
-                        }
-                    }
-
-                }
-            }
-        }
-        System.out.println(" ");
-        return -1;
-
-        return 0;*/
-
+    public int analisaExpressao(ArrayList<Tok> exp){
+        //-1 = erro, 0= booleano, 1=inteiro
         //obs: a expressao precisa estar na pos-fixa
         ArrayList<Integer> tipos = new ArrayList<Integer>();
         for(Tok T : exp){
@@ -400,10 +356,10 @@ public final class Semantico {
                     else if(s instanceof Variavel && ((Variavel)s).getTipo() == false){//booleano
                         tipos.add(0);
                     }
-                    else if(s instanceof Funcao && ((Variavel)s).getTipo() == true){//inteiro
+                    else if(s instanceof Funcao && ((Funcao)s).getTipo() == true){//inteiro
                         tipos.add(1);
                     }
-                    else if(s instanceof Funcao && ((Variavel)s).getTipo() == false){//booleano
+                    else if(s instanceof Funcao && ((Funcao)s).getTipo() == false){//booleano
                         tipos.add(0);
                     }
                 }
@@ -424,5 +380,60 @@ public final class Semantico {
         }
     }
 
+    public Erro valida_retorno(String nome_funcao, int inicio, int fim){
+        boolean cond_flag=false, valido=false;
+        int i=inicio;
+        for(;i<fim;i++){
+            if(Lexico.getInstance().getToken(i).getSimbolo() == Tok.s.inicio)
+                break;
+        }//começo a trabalhar no bloco (lexema inicio)
+        Tok ant=Lexico.getInstance().getToken(i), t, prox;
+        Tok.s s1,s2,s3;
+        for(i++;i<fim-1;ant=t,i++){
+            t=Lexico.getInstance().getToken(i);
+            prox=Lexico.getInstance().getToken(i+1);
+            s1=ant.getSimbolo(); s2=t.getSimbolo(); s3=prox.getSimbolo(); //foco no s2 que é o atual
+
+            if(valido){ //percorro expressao apos atrib, e verifico se aquele é o ultimo comando do bloco
+                if(s1!=Tok.s.ponto_virgula)
+                    continue;//ignora tudo dentro da expressao
+                if(s2!= Tok.s.fim){
+                    return new Erro(t,Erro.e.err_unreachable);
+                }
+                continue;
+            } //--------------
+
+            if(cond_flag){ //verificacao de retorno condicional
+                if(s1!=Tok.s.senao && s1!=Tok.s.ponto_virgula)
+                    continue;//ignora tudo dentro da expressao
+                if(s1 == Tok.s.senao && t.getLexema().equals(nome_funcao) && s2 == Tok.s.identificador && s3 == Tok.s.atribuicao){
+                    //apos encontrar o senao verifico se a atribuicao de retorno eh valida
+                    valido=true; //percorro expressao apos atrib, e verifico se aquele é o ultimo comando do bloco
+                }
+                else{//se nao encontrar senao continuo o loop
+                    cond_flag=false;
+                    i--;
+                    continue;
+                }
+                continue;
+            } //------------
+            //verifico se ocorre atribuicao de retorno da funcao
+            if(t.getLexema().equals(nome_funcao) && s2 == Tok.s.identificador && s3 == Tok.s.atribuicao){
+                if(s1 == Tok.s.entao){ // se for dentro de um "se (..exp..) entao (retorno)"
+                    //condicional
+                    cond_flag=true;
+                }
+                else{
+                    //simples
+                    valido=true;
+                }
+            }
+
+        }
+        if(!valido){
+            return new Erro(Lexico.getInstance().getToken(fim), Erro.e.err_retorno2);
+        }
+        return new Erro(0, Erro.e.vazio);
+    }
 
 }
