@@ -393,7 +393,7 @@ public final class Semantico {
                     i--;
                     break;
                 }
-                else if( t.getSimbolo() == Tok.s.entao){
+                else if( t.getSimbolo() == Tok.s.entao || t.getSimbolo() == Tok.s.faca){
                     //i--;
                     Ret r2 = valida_retorno2(nome_funcao,i+1,fim);
                     if(r2.e.get_errno() != 0)
@@ -443,7 +443,7 @@ public final class Semantico {
                         t.getSimbolo() == Tok.s.atribuicao){
                     valido=true;
                 }
-                else if(t.getSimbolo() == Tok.s.entao){
+                else if(t.getSimbolo() == Tok.s.entao || t.getSimbolo() == Tok.s.faca){
                     Ret r2 = valida_retorno2(nome_funcao,i+1,fim);
                     if(r2.e.get_errno() != 0)
                         return r2;
