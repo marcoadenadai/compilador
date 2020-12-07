@@ -418,7 +418,8 @@ public final class Semantico {
             return r;
         }
         else{
-            for(;i<fim-1;ant=t,i++){
+            for(;i<fim-1;/*ant=t,*/i++){
+                ant=Lexico.getInstance().getToken(i-1);
                 t=Lexico.getInstance().getToken(i);
 
                 if(valido){
@@ -428,7 +429,6 @@ public final class Semantico {
                             r.posicao = i;
                             return r;
                         }
-
                         ponto_virgula_encontrado=true;
                     }
                     else if(t.getSimbolo() == Tok.s.fim){
@@ -449,18 +449,21 @@ public final class Semantico {
                         return r2;
                     i=r2.posicao;
                     //if(r2.valido){
-                        if(Lexico.getInstance().getToken(i+1).getSimbolo() == Tok.s.senao){
-                            Ret r3 = valida_retorno2(nome_funcao,i+2,fim);
-                            if(r3.e.get_errno() != 0)
-                                return r3;
-                            i=r3.posicao;
-                            valido=r2.valido && r3.valido;
-                        }
-                        else{
-                            valido=false;
-                        }
+                    if(Lexico.getInstance().getToken(i+1).getSimbolo() == Tok.s.senao){
+                        Ret r3 = valida_retorno2(nome_funcao,i+2,fim);
+                        if(r3.e.get_errno() != 0)
+                            return r3;
+                        i=r3.posicao;
+                        valido=r2.valido && r3.valido;
+                    }
+                    else{
+                        valido=false;
+                    }
 
                     //}
+                }
+                else if(t.getSimbolo() == Tok.s.fim){
+                    break;
                 }
             }
         }
@@ -484,39 +487,6 @@ public final class Semantico {
             return x.e;
         if(!x.valido)
             return new Erro(Lexico.getInstance().getToken(fim), Erro.e.err_retorno2);
-
-        /*for(i++;i<fim-1;ant=t,i++){
-            t=Lexico.getInstance().getToken(i);
-
-            if(valido){
-                if(t.getSimbolo() == Tok.s.ponto_virgula){
-                    if(ponto_virgula_encontrado)
-                        return new Erro(t,Erro.e.err_unreachable);
-                    ponto_virgula_encontrado=true;
-                }
-                else if(t.getSimbolo() == Tok.s.fim){
-                    break;
-                }
-                else if(ponto_virgula_encontrado){
-                    return new Erro(t,Erro.e.err_unreachable);
-                }
-            }else if(ant.getSimbolo() == Tok.s.identificador && ant.getLexema().equals(nome_funcao) &&
-                    t.getSimbolo() == Tok.s.atribuicao){
-                valido=true;
-            }
-            else if(t.getSimbolo() == Tok.s.entao){
-                Ret r = valida_retorno2(nome_funcao,i+1,fim);
-                if(r.valido){
-                    valido=true;
-                }
-                i=r.posicao;
-            }
-
-        }
-        if(!valido){
-            return new Erro(Lexico.getInstance().getToken(fim), Erro.e.err_retorno2);
-        }
-        return new Erro(0, Erro.e.vazio);*/
 
         return new Erro(0,Erro.e.vazio);
     }

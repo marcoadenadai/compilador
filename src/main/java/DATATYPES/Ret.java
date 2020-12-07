@@ -10,6 +10,7 @@ public class Ret {
         this.e = new Erro(0,Erro.e.vazio);
     }
     public Ret(){
+        this.valido=false;
         this.e = new Erro(0,Erro.e.vazio);
     }
     public Ret(boolean valido, int pos){
