@@ -1,6 +1,7 @@
 package COMP;
 
 import DATATYPES.*;
+import org.fife.ui.rsyntaxtextarea.Token;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -83,6 +84,9 @@ public final class Semantico {
         int tam = TabelaSimbolos.getInstance().getLength();
         int nivel=s.getEscopo();
 
+        //se o ultimo nivel da tabela de simbolos for igual ao escopo atual - 1 significa que não houve
+        //declaracoes dentro daquela func ou proc
+        //nivel<=escopo-1
         if(nivel==escopo-1) {//significa que nao houve declaracoes dentro daquela func ou proc
             escopo--;
             return;
@@ -100,7 +104,7 @@ public final class Semantico {
     public boolean pesquisa_duplicvar_tabela(String lexema){
         int tam = TabelaSimbolos.getInstance().getLength();
         Simbolo s = TabelaSimbolos.getInstance().getLastSimbolo();
-        int escopo=s.getEscopo();
+        //int escopo=s.getEscopo();
 
         for(int i=tam-1; i>=0 && s.getEscopo() == escopo ;i--){
             s=TabelaSimbolos.getInstance().getSimbolo(i);
@@ -281,10 +285,10 @@ public final class Semantico {
         while(!pilha.empty()) {
             ret.add(pilha.pop());
         }
-        /* IMPRESSAO
+         //IMPRESSAO
         for(int i=0;i<ret.size();i++)
             System.out.println("i="+i+" , "+ret.get(i).getLexema());
-        System.out.println("-------------------------");*/
+        System.out.println("-------------------------");
         return ret;
     }
 
@@ -354,60 +358,169 @@ public final class Semantico {
         }
     }
 
+///////////////////////////////////////////////////////////////////////////////////////
+
+
+
+    Ret valida_retorno2(String nome_funcao, int inicio, int fim){
+        Ret r = new Ret();
+        boolean valido=false, ponto_virgula_encontrado=false;
+        int i=inicio;
+        Tok ant=Lexico.getInstance().getToken(i);  //ant = inicio ou identificador
+        i++;
+        Tok t=Lexico.getInstance().getToken(i);
+        if(ant.getSimbolo() != Tok.s.inicio){
+
+            if(ant.getSimbolo() == Tok.s.identificador && ant.getLexema().equals(nome_funcao) &&
+                    t.getSimbolo() == Tok.s.atribuicao){
+                r.valido = true;
+            }
+            else{
+                r.valido = false;
+            }
+
+            for(;i<fim-1;i++){
+                t=Lexico.getInstance().getToken(i);
+                if(t.getSimbolo() == Tok.s.ponto_virgula){
+                    i--;
+                    break;
+                }
+                else if(t.getSimbolo() == Tok.s.senao){
+                    i--;
+                    break;
+                }
+                else if( t.getSimbolo() == Tok.s.fim){
+                    i--;
+                    break;
+                }
+                else if( t.getSimbolo() == Tok.s.entao){
+                    //i--;
+                    Ret r2 = valida_retorno2(nome_funcao,i+1,fim);
+                    if(r2.e.get_errno() != 0)
+                        return r2;
+                    i=r2.posicao;
+                    //if(r2.valido){
+                    if(Lexico.getInstance().getToken(i+1).getSimbolo() == Tok.s.senao){
+                        Ret r3 = valida_retorno2(nome_funcao,i+2,fim);
+                        if(r3.e.get_errno() != 0)
+                            return r3;
+                        i=r3.posicao;
+                        r.valido=r2.valido && r3.valido;
+                    }
+                    else{
+                        r.valido=false;
+                    }
+                    //}
+                    break;
+                }
+            }
+            r.posicao = i;
+            return r;
+        }
+        else{
+            for(;i<fim-1;ant=t,i++){
+                t=Lexico.getInstance().getToken(i);
+
+                if(valido){
+                    if(t.getSimbolo() == Tok.s.ponto_virgula){
+                        if(ponto_virgula_encontrado){
+                            r.e = new Erro(t,Erro.e.err_unreachable);
+                            r.posicao = i;
+                            return r;
+                        }
+
+                        ponto_virgula_encontrado=true;
+                    }
+                    else if(t.getSimbolo() == Tok.s.fim){
+                        break;
+                    }
+                    else if(ponto_virgula_encontrado){
+                        r.e = new Erro(t,Erro.e.err_unreachable);
+                        r.posicao = i;
+                        return r;
+                    }
+                }else if(ant.getSimbolo() == Tok.s.identificador && ant.getLexema().equals(nome_funcao) &&
+                        t.getSimbolo() == Tok.s.atribuicao){
+                    valido=true;
+                }
+                else if(t.getSimbolo() == Tok.s.entao){
+                    Ret r2 = valida_retorno2(nome_funcao,i+1,fim);
+                    if(r2.e.get_errno() != 0)
+                        return r2;
+                    i=r2.posicao;
+                    //if(r2.valido){
+                        if(Lexico.getInstance().getToken(i+1).getSimbolo() == Tok.s.senao){
+                            Ret r3 = valida_retorno2(nome_funcao,i+2,fim);
+                            if(r3.e.get_errno() != 0)
+                                return r3;
+                            i=r3.posicao;
+                            valido=r2.valido && r3.valido;
+                        }
+                        else{
+                            valido=false;
+                        }
+
+                    //}
+                }
+            }
+        }
+        if(r.e.get_errno() == 0)
+            r.valido = valido;
+        r.posicao = i;
+        return r;
+    }
+
     public Erro valida_retorno(String nome_funcao, int inicio, int fim){
-        boolean cond_flag=false, valido=false;
+        boolean valido=false, ponto_virgula_encontrado=false;
         int i=inicio;
         for(;i<fim;i++){
             if(Lexico.getInstance().getToken(i).getSimbolo() == Tok.s.inicio)
                 break;
         }//começo a trabalhar no bloco (lexema inicio)
-        Tok ant=Lexico.getInstance().getToken(i), t, prox;
-        Tok.s s1,s2,s3;
-        for(i++;i<fim-1;ant=t,i++){
-            t=Lexico.getInstance().getToken(i);
-            prox=Lexico.getInstance().getToken(i+1);
-            s1=ant.getSimbolo(); s2=t.getSimbolo(); s3=prox.getSimbolo(); //foco no s2 que é o atual
 
-            if(valido){ //percorro expressao apos atrib, e verifico se aquele é o ultimo comando do bloco
-                if(s1!=Tok.s.ponto_virgula)
-                    continue;//ignora tudo dentro da expressao
-                if(s2!= Tok.s.fim){
+        Tok ant=Lexico.getInstance().getToken(i), t;
+        Ret x = valida_retorno2(nome_funcao,i,fim);
+        if(x.e.get_errno() != 0)
+            return x.e;
+        if(!x.valido)
+            return new Erro(Lexico.getInstance().getToken(fim), Erro.e.err_retorno2);
+
+        /*for(i++;i<fim-1;ant=t,i++){
+            t=Lexico.getInstance().getToken(i);
+
+            if(valido){
+                if(t.getSimbolo() == Tok.s.ponto_virgula){
+                    if(ponto_virgula_encontrado)
+                        return new Erro(t,Erro.e.err_unreachable);
+                    ponto_virgula_encontrado=true;
+                }
+                else if(t.getSimbolo() == Tok.s.fim){
+                    break;
+                }
+                else if(ponto_virgula_encontrado){
                     return new Erro(t,Erro.e.err_unreachable);
                 }
-                continue;
-            } //--------------
-
-            if(cond_flag){ //verificacao de retorno condicional
-                if(s1!=Tok.s.senao && s1!=Tok.s.ponto_virgula)
-                    continue;//ignora tudo dentro da expressao
-                if(s1 == Tok.s.senao && t.getLexema().equals(nome_funcao) && s2 == Tok.s.identificador && s3 == Tok.s.atribuicao){
-                    //apos encontrar o senao verifico se a atribuicao de retorno eh valida
-                    valido=true; //percorro expressao apos atrib, e verifico se aquele é o ultimo comando do bloco
-                }
-                else{//se nao encontrar senao continuo o loop
-                    cond_flag=false;
-                    i--;
-                    continue;
-                }
-                continue;
-            } //------------
-            //verifico se ocorre atribuicao de retorno da funcao
-            if(t.getLexema().equals(nome_funcao) && s2 == Tok.s.identificador && s3 == Tok.s.atribuicao){
-                if(s1 == Tok.s.entao){ // se for dentro de um "se (..exp..) entao (retorno)"
-                    //condicional
-                    cond_flag=true;
-                }
-                else{
-                    //simples
+            }else if(ant.getSimbolo() == Tok.s.identificador && ant.getLexema().equals(nome_funcao) &&
+                    t.getSimbolo() == Tok.s.atribuicao){
+                valido=true;
+            }
+            else if(t.getSimbolo() == Tok.s.entao){
+                Ret r = valida_retorno2(nome_funcao,i+1,fim);
+                if(r.valido){
                     valido=true;
                 }
+                i=r.posicao;
             }
 
         }
         if(!valido){
             return new Erro(Lexico.getInstance().getToken(fim), Erro.e.err_retorno2);
         }
-        return new Erro(0, Erro.e.vazio);
+        return new Erro(0, Erro.e.vazio);*/
+
+        return new Erro(0,Erro.e.vazio);
     }
+
+
 
 }
