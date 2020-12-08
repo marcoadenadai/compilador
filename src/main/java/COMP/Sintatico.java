@@ -183,9 +183,12 @@ public final class Sintatico {
 
     Erro analisa_subrotina(){
         Erro E;
-        int flag=0;
+        int aux=-5, flag=0;
         if(token_simbolo() == Tok.s.procedimento || token_simbolo() == Tok.s.funcao){
-            //auxrot := rotulo .....
+            aux=rotulo;
+            GeradorCodigo.getInstance().gera("JMP", "L"+rotulo);
+            rotulo++;
+            flag=1;
         }
         while(token_simbolo() == Tok.s.procedimento || token_simbolo() == Tok.s.funcao){
             if(token_simbolo() == Tok.s.procedimento){
@@ -207,7 +210,7 @@ public final class Sintatico {
             }
         }
         if(flag == 1){
-            //gera blablabla vermelho ....
+            GeradorCodigo.getInstance().geraLabel(aux);
         }
         return new Erro(0, Erro.e.vazio);
     }
@@ -220,11 +223,14 @@ public final class Sintatico {
             if(!Semantico.getInstance().pesquisa_duplicidade_tabela(T.getLexema())){
                 Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.procedimento, rotulo); //rotulo!
                 //vermelho
+                GeradorCodigo.getInstance().geraLabel(rotulo);
+                rotulo++;
                 lexico_Token();
                 if(token_simbolo() == Tok.s.ponto_virgula){
                     E = analisa_bloco();
                     if(E.get_errno() != 0)
                         return E;
+                    //possivel !!!!!!! GeraCodigo RETURN
                 }
                 else{
                     return new Erro(T, Erro.e.simbolo_nao_esperado);
@@ -249,6 +255,8 @@ public final class Sintatico {
             if(!Semantico.getInstance().pesquisa_duplicidade_tabela(T.getLexema())){
                 String nome_func = T.getLexema();
                 Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.funcao, rotulo); //rotulo!
+                GeradorCodigo.getInstance().geraLabel(rotulo);
+                rotulo++;
                 lexico_Token();
                 if(token_simbolo() == Tok.s.doispontos){
                     lexico_Token();
@@ -272,6 +280,8 @@ public final class Sintatico {
                             E=Semantico.getInstance().valida_retorno(nome_func,pos_inicio_func,pos_final_func);
                             if(E.get_errno() !=0)
                                 return E;
+                            //nao existiu erro semantico ate o fim da funcao!
+
                         }
                         else{
                             return new Erro(T, Erro.e.simbolo_nao_esperado);
@@ -417,6 +427,7 @@ public final class Sintatico {
             else{
                 return new Erro(Tant,Erro.e.expressao_incompativel);
             }
+            GeradorCodigo.getInstance().geraExpressao(expressao);
         }
         else{
             //erro
@@ -576,8 +587,10 @@ public final class Sintatico {
     Erro analisa_enquanto(){
         expressao = new ArrayList<Tok>();
         Erro E;
-        //int auxrot1, auxrot2;
-        //vermelho
+        int aux1=rotulo, aux2;
+        GeradorCodigo.getInstance().geraLabel(rotulo);
+        rotulo++;
+
         Tant=T;
         lexico_Token();
         E = analisa_expressao();
@@ -589,12 +602,18 @@ public final class Sintatico {
         if(tipo_exp != 0){
             return new Erro(Tant,Erro.e.exp_booleana_esperada);
         }
+        GeradorCodigo.getInstance().geraExpressao(expressao);
         if(token_simbolo() == Tok.s.faca){
+            aux2=rotulo;
+            GeradorCodigo.getInstance().gera("JMPF","L"+rotulo);
+            rotulo++;
             //veremlho
             lexico_Token();
             E =analisa_comando_simples();
             if(E.get_errno() != 0)
                 return E;
+            GeradorCodigo.getInstance().gera("JMP","L"+aux1);
+            GeradorCodigo.getInstance().geraLabel(aux2);
         }else{
             return new Erro(T, Erro.e.faca_esperado);
         }
@@ -602,6 +621,7 @@ public final class Sintatico {
     }
 
     Erro analisa_se(){
+        int aux1,aux2;
         expressao = new ArrayList<Tok>();
         Erro E;
         Tant=T;
@@ -615,16 +635,25 @@ public final class Sintatico {
         if(tipo_exp != 0){
             return new Erro(Tant,Erro.e.exp_booleana_esperada);
         }
+        GeradorCodigo.getInstance().geraExpressao(expressao);
+        aux1=rotulo;
+        rotulo++;
         if(token_simbolo() == Tok.s.entao){
+            GeradorCodigo.getInstance().gera("JMPF", "L"+aux1);
             lexico_Token();
             E =analisa_comando_simples();
             if(E.get_errno() != 0)
                 return E;
             if(token_simbolo() == Tok.s.senao){
+                aux2=rotulo;
+                rotulo++;
+                GeradorCodigo.getInstance().gera("JMP", "L"+aux2);
+                GeradorCodigo.getInstance().geraLabel(aux1);
                 lexico_Token();
                 E =analisa_comando_simples();
                 if(E.get_errno() != 0)
                     return E;
+                GeradorCodigo.getInstance().geraLabel(aux2);
             }
         }else{
             return new Erro(T, Erro.e.entao_esperado);

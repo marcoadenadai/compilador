@@ -491,6 +491,23 @@ public final class Semantico {
         return new Erro(0,Erro.e.vazio);
     }
 
+///////////////////////////////////////////////////////////////////////////////////////
 
+    public Simbolo buscaSimbolo(String lexema){
+        int tam = TabelaSimbolos.getInstance().getLength();
+        Simbolo s = TabelaSimbolos.getInstance().getLastSimbolo();
 
+        for(int i=tam-1; i>=0 && s.getEscopo() == escopo ;i--){
+            s=TabelaSimbolos.getInstance().getSimbolo(i);
+            if(s.getLexema().equals(lexema))
+                return s;
+        }
+        //ou se ja existe outro identificador visivel de qualquier tipo em nivel anterior
+        for(int i=0; i<TabelaSimbolos.getInstance().getLength() ;i++) {
+            s=TabelaSimbolos.getInstance().getSimbolo(i);
+            if(s.getLexema().equals(lexema))
+                return s;
+        }
+        return null;
+    }
 }
