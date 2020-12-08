@@ -12,6 +12,8 @@ public final class Compilador {
 
     public void executa(File arquivo){
         Interface.getInstance().printConsole("Iniciando processo de compilação (\'" + arquivo.toString() + "\')");
+        GeradorCodigo.getInstance().inicializa(arquivo.toString());
+
         Erro L = Lexico.getInstance().load(arquivo);
         if(L.get_errno() != 0){
             Interface.getInstance().printConsole(L.get_description());

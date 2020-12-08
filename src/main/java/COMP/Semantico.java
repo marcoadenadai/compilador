@@ -41,10 +41,10 @@ public final class Semantico {
                 s = new ProcedimentoOuPrograma(lexema, escopo, rotulo);
                 break;
             case funcao:
-                s= new Funcao(lexema,escopo, rotulo);
+                s= new Funcao(lexema, escopo, rotulo);
                 break;
             case variavel:
-                s= new Variavel(lexema, escopo, rotulo);
+                s= new Variavel(lexema, escopo, rotulo); // NO CASO EH ENDERECO, EU SO APROVEITO A FUNCAO!!
                 break;
             default:
                 throw new IllegalStateException("Unexpected value");

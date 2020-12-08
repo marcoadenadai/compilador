@@ -15,6 +15,9 @@ public final class Sintatico {
     private int vars_count = 0;
     private boolean dentro_funcao = false;
     private ArrayList<Tok> expressao;
+    //geracao codigo
+    private int rotulo;
+    private int endereco;
 
     public Sintatico() {
     }
@@ -31,6 +34,8 @@ public final class Sintatico {
     Erro load(){
         i=0;
         dentro_funcao = false;
+        rotulo=1;
+        endereco=0;
         Semantico.getInstance().inicializa();
         lexico_Token();
         if(T==null)
@@ -39,7 +44,8 @@ public final class Sintatico {
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
                 //semantico insere_tabela
-                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.programa);
+                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.programa, rotulo);
+                GeradorCodigo.getInstance().gera("START");
                 lexico_Token();
                 if(token_simbolo() == Tok.s.ponto_virgula){
                     //analisa bloco
@@ -48,6 +54,8 @@ public final class Sintatico {
                         return E;
                     if(T!= null && token_simbolo() == Tok.s.ponto){
                         if(i >= Lexico.getInstance().getLength()){
+                            GeradorCodigo.getInstance().gera("HLT");
+                            GeradorCodigo.getInstance().close();
                             //return new Erro(0, Erro.e.sucesso);
                         }else{
                             //programa nao acabou
@@ -131,7 +139,7 @@ public final class Sintatico {
             if(token_simbolo() == Tok.s.identificador){
                 //semantico
                 if(!Semantico.getInstance().pesquisa_duplicvar_tabela(T.getLexema())){
-                    Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.variavel);
+                    Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.variavel, endereco+vars_count);
                     vars_count++;
                     lexico_Token();
                     if(token_simbolo() == Tok.s.virgula || token_simbolo() == Tok.s.doispontos){
@@ -210,7 +218,7 @@ public final class Sintatico {
         if(token_simbolo() == Tok.s.identificador){
             //if(!Semantico.getInstance().pesquisa_declproc_tabela(T.getLexema())){
             if(!Semantico.getInstance().pesquisa_duplicidade_tabela(T.getLexema())){
-                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.procedimento); //rotulo!
+                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.procedimento, rotulo); //rotulo!
                 //vermelho
                 lexico_Token();
                 if(token_simbolo() == Tok.s.ponto_virgula){
@@ -240,7 +248,7 @@ public final class Sintatico {
             //if(!Semantico.getInstance().pesquisa_declfunc_tabela(T.getLexema())){
             if(!Semantico.getInstance().pesquisa_duplicidade_tabela(T.getLexema())){
                 String nome_func = T.getLexema();
-                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.funcao); //rotulo!
+                Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.funcao, rotulo); //rotulo!
                 lexico_Token();
                 if(token_simbolo() == Tok.s.doispontos){
                     lexico_Token();

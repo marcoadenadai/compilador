@@ -1,9 +1,3 @@
-import COMP.Semantico;
-import COMP.TabelaSimbolos;
-import DATATYPES.Simbolo;
-import DATATYPES.Valor;
-import DATATYPES.Variavel;
-import VM.VirtualMachine;
 import com.formdev.flatlaf.*;
 import javax.swing.*;
 import GUI.*;
