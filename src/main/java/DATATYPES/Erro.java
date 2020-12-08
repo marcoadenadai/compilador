@@ -64,7 +64,7 @@ public class Erro {
                 ret = null;
                 break;
             case sucesso:
-                ret = "sucesso, não houve erros na execução";
+                ret = "Sucesso, não houve erros na compilação! :-)";
                 break;
             //lexico------------------------------------------------------------------
             case simbolo_invalido:

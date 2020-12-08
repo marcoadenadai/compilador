@@ -36,12 +36,12 @@ public final class VirtualMachine {
         return ret;
     }
     private boolean validate(String in){
-        Pattern pat = Pattern.compile("^([A-Z]{2,}|L[0-9]+)($| +(L[0-9]+$|[0-9]+(,[0-9]+)?$|NULL))", Pattern.MULTILINE);
+        Pattern pat = Pattern.compile("^(\\s*([A-Z]{2,}|L[0-9]+)(\\s|$))(NULL|(L*([0-9]+))(,([0-9]+))*)*", Pattern.MULTILINE);
 
         Matcher n, m = pat.matcher(in);
         int i;
         boolean v=false;
-        for(i=0;m.find();i++);//System.out.println("FOUND: ["+m.start()+","+m.end()+"]"+ m.group(0));
+        for(i=0;m.find();i++) System.out.println("FOUND: ["+m.start()+","+m.end()+"]"+ m.group(0));
         System.out.println("VALIDATE: {i="+i+", countLines="+countLines(in)+"}");
         if(i==countLines(in)){
             //agora checa se todos os labels existem
@@ -79,7 +79,7 @@ public final class VirtualMachine {
             System.out.println("FIM: \n"+ str);
             System.out.println("****************************************");
 
-            Pattern pat = Pattern.compile("^(([A-Z]{2,})( +|$))(([0-9]+)(,([0-9]+))*)*", Pattern.MULTILINE);
+            Pattern pat = Pattern.compile("^(\\s*([A-Z]{2,})( +|$))(([0-9]+)(,([0-9]+))*)*", Pattern.MULTILINE);
             Matcher m = pat.matcher(str);
             Integer x1,x2;
             while(m.find()){
