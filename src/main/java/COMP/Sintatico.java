@@ -465,19 +465,23 @@ public final class Sintatico {
             }
             else{
                 GeradorCodigo.getInstance().gera("STR", 0);
-                if(primeiro_retorno){
-                    GeradorCodigo.getInstance().geraLabel(rotulo);
-                    aux_rotulo = rotulo;
-                    rotulo++;
+                //if(primeiro_retorno){
+                    //GeradorCodigo.getInstance().geraLabel(rotulo);
+                    //aux_rotulo = rotulo;
+                    //rotulo++;
                     if(aux_aloc2 != 0){
                         GeradorCodigo.getInstance().gera("DALLOC",aux_aloc1, aux_aloc2);
-                        endereco-=aux_aloc2;
+                        if(primeiro_retorno){
+                            endereco-=aux_aloc2;
+                            primeiro_retorno=false;
+                        }
+
                     }
                     GeradorCodigo.getInstance().gera("RETURN");
-                    primeiro_retorno=false;
-                }else{
-                    GeradorCodigo.getInstance().gera("JMP","L"+aux_rotulo);
-                }
+                    //primeiro_retorno=false;
+                //}else{
+                //    GeradorCodigo.getInstance().gera("JMP","L"+aux_rotulo);
+                //}
             }
         }
         else{
@@ -718,6 +722,9 @@ public final class Sintatico {
                 if(E.get_errno() != 0)
                     return E;
                 GeradorCodigo.getInstance().geraLabel(aux2);
+            }
+            else{
+                GeradorCodigo.getInstance().geraLabel(aux1);
             }
         }else{
             return new Erro(T, Erro.e.entao_esperado);
