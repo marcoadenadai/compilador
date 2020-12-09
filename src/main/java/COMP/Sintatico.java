@@ -18,6 +18,8 @@ public final class Sintatico {
     //geracao codigo
     private int rotulo;
     private int endereco;
+    private int aux_rotulo=0;
+    private int aux_aloc1,aux_aloc2;
 
     public Sintatico() {
     }
@@ -46,14 +48,18 @@ public final class Sintatico {
                 //semantico insere_tabela
                 Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.programa, rotulo);
                 GeradorCodigo.getInstance().gera("START");
+                GeradorCodigo.getInstance().gera("ALLOC", 0, 1);
+                endereco++;
                 lexico_Token();
                 if(token_simbolo() == Tok.s.ponto_virgula){
                     //analisa bloco
-                    Erro E = analisa_bloco();
+                    Erro E = analisa_bloco(false);
                     if(E.get_errno() != 0)
                         return E;
                     if(T!= null && token_simbolo() == Tok.s.ponto){
                         if(i >= Lexico.getInstance().getLength()){
+                            GeradorCodigo.getInstance().gera("DALLOC", 0, 1);
+                            endereco--;
                             GeradorCodigo.getInstance().gera("HLT");
                             GeradorCodigo.getInstance().close();
                             //return new Erro(0, Erro.e.sucesso);
@@ -87,13 +93,20 @@ public final class Sintatico {
     }
 
 
-    Erro analisa_bloco(){
+    Erro analisa_bloco(boolean is_function){
         Erro E;
         lexico_Token();
         //analisa_et_variaveis
+        int aux1=endereco, aux2;
         E = analisa_et_variaveis();
         if(E.get_errno() != 0)
             return E;
+        aux2=endereco-aux1;
+        if(aux2 != 0)
+            GeradorCodigo.getInstance().gera("ALLOC",aux1, aux2);
+        aux_aloc1 = aux1;
+        aux_aloc2 = aux2;
+
         //analisa_subrotina
         E = analisa_subrotina();
         if(E.get_errno() != 0)
@@ -102,6 +115,13 @@ public final class Sintatico {
         E = analisa_comandos();
         if(E.get_errno() != 0)
             return E;
+
+        if(!is_function && aux2 != 0){
+            GeradorCodigo.getInstance().gera("DALLOC",aux1, aux2);
+            endereco-=aux2;
+        }
+
+
         return new Erro(0, Erro.e.vazio);
     }
 
@@ -117,6 +137,8 @@ public final class Sintatico {
                     if(E.get_errno() != 0)
                         return E;
                     if(token_simbolo() == Tok.s.ponto_virgula){
+                        System.out.println("Vars_count="+vars_count);
+                        endereco+=vars_count;
                         vars_count = 0;
                         lexico_Token();
                     }
@@ -140,6 +162,7 @@ public final class Sintatico {
                 //semantico
                 if(!Semantico.getInstance().pesquisa_duplicvar_tabela(T.getLexema())){
                     Semantico.getInstance().insere_tabela(T.getLexema(), Semantico.tipo.variavel, endereco+vars_count);
+                    System.out.println("endereco+vars_count="+ (endereco+vars_count));
                     vars_count++;
                     lexico_Token();
                     if(token_simbolo() == Tok.s.virgula || token_simbolo() == Tok.s.doispontos){
@@ -227,10 +250,11 @@ public final class Sintatico {
                 rotulo++;
                 lexico_Token();
                 if(token_simbolo() == Tok.s.ponto_virgula){
-                    E = analisa_bloco();
+                    E = analisa_bloco(false);
                     if(E.get_errno() != 0)
                         return E;
-                    //possivel !!!!!!! GeraCodigo RETURN
+                    //RETORNO
+                    GeradorCodigo.getInstance().gera("RETURN");
                 }
                 else{
                     return new Erro(T, Erro.e.simbolo_nao_esperado);
@@ -272,7 +296,7 @@ public final class Sintatico {
                         if(token_simbolo() == Tok.s.ponto_virgula){
                             dentro_funcao = true ;
                             int pos_inicio_func = i;
-                            E=analisa_bloco();
+                            E=analisa_bloco(true);
                             if(E.get_errno() !=0)
                                 return E;
                             //nao existiu erro sintatico ate o fim da funcao
@@ -281,7 +305,14 @@ public final class Sintatico {
                             if(E.get_errno() !=0)
                                 return E;
                             //nao existiu erro semantico ate o fim da funcao!
-
+                            GeradorCodigo.getInstance().geraLabel(rotulo);
+                            aux_rotulo = rotulo;
+                            rotulo++;
+                            if(aux_aloc2 != 0){
+                                GeradorCodigo.getInstance().gera("DALLOC",aux_aloc1, aux_aloc2);
+                                endereco-=aux_aloc2;
+                            }
+                            GeradorCodigo.getInstance().gera("RETURN");
                         }
                         else{
                             return new Erro(T, Erro.e.simbolo_nao_esperado);
@@ -388,6 +419,8 @@ public final class Sintatico {
             //erro
             return new Erro(Tant, Erro.e.declproc);
         }
+        Simbolo s = Semantico.getInstance().buscaSimbolo(Tant.getLexema());
+        GeradorCodigo.getInstance().gera("CALL", "L"+ ((ProcedimentoOuPrograma)s).getRotulo());
         return new Erro(0, Erro.e.vazio);
     }
 
@@ -397,16 +430,18 @@ public final class Sintatico {
     }
 
     Erro analisa_atribuicao() {
-        Simbolo s = Semantico.getInstance().pesquisa_tabela(Tant.getLexema());
+        Simbolo s = Semantico.getInstance().buscaSimbolo(Tant.getLexema());
         boolean tipo_inteiro = false;
         if(s!=null){
             if(s instanceof Variavel){
                 tipo_inteiro = ((Variavel)s).getTipo();
-            }else {
+            }else if (s instanceof Funcao){
                 if(dentro_funcao == false)
                     return new Erro(Tant, Erro.e.err_retorno);
                 tipo_inteiro = ((Funcao)s).getTipo();
             }
+            else
+                return new Erro(Tant, Erro.e.declvarfunc);
             expressao = new ArrayList<Tok>();
             Erro E;
             lexico_Token();
@@ -428,6 +463,13 @@ public final class Sintatico {
                 return new Erro(Tant,Erro.e.expressao_incompativel);
             }
             GeradorCodigo.getInstance().geraExpressao(expressao);
+            if(s instanceof Variavel){
+                GeradorCodigo.getInstance().gera("STR", ((Variavel)s).getEndereco());
+            }
+            else{
+                GeradorCodigo.getInstance().gera("STR", 0);
+                GeradorCodigo.getInstance().gera("JMP", "L"+aux_rotulo);
+            }
         }
         else{
             //erro
@@ -538,6 +580,9 @@ public final class Sintatico {
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
                 if(Semantico.getInstance().pesquisa_declvar_tabela(T.getLexema())){
+                    GeradorCodigo.getInstance().gera("RD");
+                    Simbolo s = Semantico.getInstance().buscaSimbolo(T.getLexema());
+                    GeradorCodigo.getInstance().gera("STR", ((Variavel)s).getEndereco());
                     lexico_Token();
                     if(token_simbolo() == Tok.s.fecha_parenteses){
                         lexico_Token();
@@ -565,6 +610,16 @@ public final class Sintatico {
             lexico_Token();
             if(token_simbolo() == Tok.s.identificador){
                 if(Semantico.getInstance().pesquisa_declvarfunc_tabela(T.getLexema())){
+                    Simbolo s = Semantico.getInstance().buscaSimbolo(T.getLexema());
+                    if(s instanceof Variavel){
+                        GeradorCodigo.getInstance().gera("LDV", ((Variavel)s).getEndereco());
+                        GeradorCodigo.getInstance().gera("PRN");
+                    }else if (s instanceof Funcao){
+                        GeradorCodigo.getInstance().gera("CALL", "L"+((Funcao)s).getRotulo());
+                        GeradorCodigo.getInstance().gera("LDV", 0);
+                        GeradorCodigo.getInstance().gera("PRN");
+                    }
+
                     lexico_Token();
                     if(token_simbolo() == Tok.s.fecha_parenteses){
                         lexico_Token();

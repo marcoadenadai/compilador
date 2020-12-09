@@ -286,9 +286,9 @@ public final class Semantico {
             ret.add(pilha.pop());
         }
          //IMPRESSAO
-        for(int i=0;i<ret.size();i++)
+        /*for(int i=0;i<ret.size();i++)
             System.out.println("i="+i+" , "+ret.get(i).getLexema());
-        System.out.println("-------------------------");
+        System.out.println("-------------------------");*/
         return ret;
     }
 
@@ -496,18 +496,18 @@ public final class Semantico {
     public Simbolo buscaSimbolo(String lexema){
         int tam = TabelaSimbolos.getInstance().getLength();
         Simbolo s = TabelaSimbolos.getInstance().getLastSimbolo();
+        int i=tam-1;
+        for(; i>=0 && s.getEscopo() > escopo ;i--){
+            s=TabelaSimbolos.getInstance().getSimbolo(i);
+        }
 
-        for(int i=tam-1; i>=0 && s.getEscopo() == escopo ;i--){
+        for(;i>=0;i--){
             s=TabelaSimbolos.getInstance().getSimbolo(i);
             if(s.getLexema().equals(lexema))
                 return s;
         }
-        //ou se ja existe outro identificador visivel de qualquier tipo em nivel anterior
-        for(int i=0; i<TabelaSimbolos.getInstance().getLength() ;i++) {
-            s=TabelaSimbolos.getInstance().getSimbolo(i);
-            if(s.getLexema().equals(lexema))
-                return s;
-        }
+
+
         return null;
     }
 }

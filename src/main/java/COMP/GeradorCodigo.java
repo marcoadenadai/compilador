@@ -1,9 +1,6 @@
 package COMP;
 
-import DATATYPES.Erro;
-import DATATYPES.Simbolo;
-import DATATYPES.Tok;
-import DATATYPES.Variavel;
+import DATATYPES.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,15 +51,16 @@ public final class GeradorCodigo {
 
     public void close() { out.close(); }
 
-    public boolean geraExpressao(ArrayList<Tok> expressao) {
+    public void geraExpressao(ArrayList<Tok> expressao) {
         for(Tok t : expressao){
             if(t.getSimbolo() == Tok.s.identificador){
                 Simbolo s = Semantico.getInstance().buscaSimbolo(t.getLexema());
                 if(s!=null && s instanceof Variavel){
                     GeradorCodigo.getInstance().gera("LDV", ((Variavel)s).getEndereco());
                 }
-                else{
-                    return false;
+                if(s!=null && s instanceof Funcao){
+                    GeradorCodigo.getInstance().gera("CALL", "L"+((Funcao)s).getRotulo());
+                    GeradorCodigo.getInstance().gera("LDV", 0);
                 }
             }
             else if(t.getSimbolo()==Tok.s.numero)
@@ -100,7 +98,6 @@ public final class GeradorCodigo {
             else if(t.getSimbolo()==Tok.s.div)
                 GeradorCodigo.getInstance().gera("DIVI");
         }
-        return true;
     }
 
 
