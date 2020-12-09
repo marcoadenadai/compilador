@@ -20,6 +20,7 @@ public final class Sintatico {
     private int endereco;
     private int aux_rotulo=0;
     private int aux_aloc1,aux_aloc2;
+    private boolean primeiro_retorno = false;
 
     public Sintatico() {
     }
@@ -36,6 +37,7 @@ public final class Sintatico {
     Erro load(){
         i=0;
         dentro_funcao = false;
+        primeiro_retorno = false;
         rotulo=1;
         endereco=0;
         Semantico.getInstance().inicializa();
@@ -295,6 +297,7 @@ public final class Sintatico {
                         lexico_Token();
                         if(token_simbolo() == Tok.s.ponto_virgula){
                             dentro_funcao = true ;
+                            primeiro_retorno = true;
                             int pos_inicio_func = i;
                             E=analisa_bloco(true);
                             if(E.get_errno() !=0)
@@ -305,14 +308,7 @@ public final class Sintatico {
                             if(E.get_errno() !=0)
                                 return E;
                             //nao existiu erro semantico ate o fim da funcao!
-                            GeradorCodigo.getInstance().geraLabel(rotulo);
-                            aux_rotulo = rotulo;
-                            rotulo++;
-                            if(aux_aloc2 != 0){
-                                GeradorCodigo.getInstance().gera("DALLOC",aux_aloc1, aux_aloc2);
-                                endereco-=aux_aloc2;
-                            }
-                            GeradorCodigo.getInstance().gera("RETURN");
+
                         }
                         else{
                             return new Erro(T, Erro.e.simbolo_nao_esperado);
@@ -331,6 +327,7 @@ public final class Sintatico {
             return new Erro(T, Erro.e.identificador_esperado);
         }
         Semantico.getInstance().desempilha();
+        primeiro_retorno = false;
         dentro_funcao = false;
         return new Erro(0, Erro.e.vazio);
     }
@@ -468,7 +465,19 @@ public final class Sintatico {
             }
             else{
                 GeradorCodigo.getInstance().gera("STR", 0);
-                GeradorCodigo.getInstance().gera("JMP", "L"+aux_rotulo);
+                if(primeiro_retorno){
+                    GeradorCodigo.getInstance().geraLabel(rotulo);
+                    aux_rotulo = rotulo;
+                    rotulo++;
+                    if(aux_aloc2 != 0){
+                        GeradorCodigo.getInstance().gera("DALLOC",aux_aloc1, aux_aloc2);
+                        endereco-=aux_aloc2;
+                    }
+                    GeradorCodigo.getInstance().gera("RETURN");
+                    primeiro_retorno=false;
+                }else{
+                    GeradorCodigo.getInstance().gera("JMP","L"+aux_rotulo);
+                }
             }
         }
         else{
@@ -535,12 +544,12 @@ public final class Sintatico {
         if(token_simbolo() == Tok.s.identificador){
             Simbolo s =Semantico.getInstance().pesquisa_tabela(T.getLexema());
             if(s!=null){
-                    //blablabla azul6
+                //blablabla azul6
                 expressao.add(T);
-                    E=chamada_funcao();
-                    if(E.get_errno() != 0)
-                        return E;
-                    //blablabla azul
+                E=chamada_funcao();
+                if(E.get_errno() != 0)
+                    return E;
+                //blablabla azul
             }
             else{
                 return new Erro(T, Erro.e.declvarfunc);

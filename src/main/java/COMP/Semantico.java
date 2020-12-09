@@ -481,13 +481,12 @@ public final class Semantico {
                 break;
         }//começo a trabalhar no bloco (lexema inicio)
 
-        Tok ant=Lexico.getInstance().getToken(i), t;
+        Tok ant=Lexico.getInstance().getToken(i);
         Ret x = valida_retorno2(nome_funcao,i,fim);
         if(x.e.get_errno() != 0)
             return x.e;
         if(!x.valido)
             return new Erro(Lexico.getInstance().getToken(fim), Erro.e.err_retorno2);
-
         return new Erro(0,Erro.e.vazio);
     }
 
