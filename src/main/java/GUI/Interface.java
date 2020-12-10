@@ -17,7 +17,6 @@ import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.IntConsumer;
 
 
 public final class Interface extends JFrame {
@@ -39,12 +38,17 @@ public final class Interface extends JFrame {
     private JTable table2;
     private JButton stopButton;
     private JButton bttnLoad;
-    private JList list1;
-    private JList list2;
+    private JList<Integer> list1;
+    private JList<Integer> list2;
+    /*DefaultListModel listModel1;
+    DefaultListModel listModel2;*/
+    DefaultListModel listModel2;
     private JButton bttnStep;
     private JButton bttnRun;
     private JLabel label2;
     private JLabel label1;
+    private JButton bttnDbg;
+    private JButton bttnBkpt;
     private TableModInstructions TModI;
     private TableModStack TModS;
     private NewSelectionModel SelectorI, SelectorS;
@@ -58,6 +62,10 @@ public final class Interface extends JFrame {
     JTextArea consoleTextArea;
     JMenuItem mitem_clear_log;
     Panel consolePanel;
+    JMenuItem mitem_add_bkpt;
+    JMenuItem mitem_clear_bkpt;
+    JPopupMenu pop_bkpt;
+
 
     //f(x) - functions
     public static Interface getInstance() {
@@ -101,6 +109,12 @@ public final class Interface extends JFrame {
         sp = new RTextScrollPane(textArea);
         CenterPanel.add(sp,BorderLayout.CENTER);
 
+        pop_bkpt = new JPopupMenu();
+        mitem_add_bkpt = new JMenuItem("Add Breakpoint");
+        mitem_clear_bkpt = new JMenuItem("Limpar Tudo");
+        pop_bkpt.add(mitem_add_bkpt);
+        pop_bkpt.add(mitem_clear_bkpt);
+
         try {
             Theme theme = Theme.load(getClass().getResourceAsStream(
                     "/org/fife/ui/rsyntaxtextarea/themes/monokai.xml"));
@@ -133,8 +147,7 @@ public final class Interface extends JFrame {
         consolePanel.setVisible(false);
 
         this.getLayeredPane().add(consolePanel, JLayeredPane.POPUP_LAYER);
-
-
+        estado0();
 
         //-- BUTTONS E LISTENERS ---------------------------------------------------------------------------
 
@@ -144,6 +157,7 @@ public final class Interface extends JFrame {
                 consoleTextArea.setText("");
             }
         });
+
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent){
@@ -155,6 +169,22 @@ public final class Interface extends JFrame {
                 else{
                     System.exit(0);
                 }
+            }
+        });
+
+        mitem_clear_bkpt.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                ((DefaultListModel)list2.getModel()).clear();
+            }
+        });
+
+        mitem_add_bkpt.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                int x = Integer.parseInt(JOptionPane.showInputDialog(null, "Add (VM) breakpoint:"));
+                //
+                listModel2.addElement(x);
             }
         });
 
@@ -323,7 +353,13 @@ public final class Interface extends JFrame {
             }
         });
 
-
+        BtnLog.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                toogleConsole();
+                super.mouseClicked(e);
+            }
+        });
         BtnVm.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -371,19 +407,25 @@ public final class Interface extends JFrame {
                 super.mouseClicked(e);
             }
         });
+        //------------bttns VM
         bttnLoad.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
                 int returnValue = jfc.showOpenDialog(null);
-
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    clearOUTPUT();
+                    VirtualMachine.getInstance().inicializa();
+                    updateInstruction();
+                    updateStack();
                     File selectedFile = jfc.getSelectedFile();
                     if(VirtualMachine.getInstance().load(selectedFile)) {
+                        estado1();
                         for (int i = 0; i < VirtualMachine.getInstance().I.size(); i++) {
                             TModI.addRow(VirtualMachine.getInstance().I.get(i));
                         }
-                        updateInstructions();
+                        updateRunInstruction();
+                        updateStack();
                     }
                 }
             }
@@ -391,21 +433,24 @@ public final class Interface extends JFrame {
         bttnStep.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                updateInstructions();
+                updateRunInstruction();
                 updateStack();
                 try {
                     VirtualMachine.getInstance().exec_instruction(VirtualMachine.getInstance().I.get(VirtualMachine.getInstance().i));
                 } catch (Exception exception) {
                     exception.printStackTrace();
                 }
+                if(!VirtualMachine.getInstance().running)
+                    estado3();
             }
         });
         bttnRun.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
+                estado3();
                 VirtualMachine.getInstance().running = true;
                 while(VirtualMachine.getInstance().running){
-                    updateInstructions();
+                    updateRunInstruction();
                     updateStack();
                     try {
                         VirtualMachine.getInstance().exec_instruction(VirtualMachine.getInstance().I.get(VirtualMachine.getInstance().i));
@@ -415,14 +460,109 @@ public final class Interface extends JFrame {
                 }
             }
         });
-        BtnLog.addMouseListener(new MouseAdapter() {
+
+        bttnDbg.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                toogleConsole();
-                super.mouseClicked(e);
+            public void actionPerformed(ActionEvent actionEvent) {
+                //run com breakpoints
+                estado2();
+            }
+        });
+        bttnBkpt.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                VirtualMachine.getInstance().running = true;
+                while(VirtualMachine.getInstance().running && !bkpt_contido(VirtualMachine.getInstance().i)){
+                    updateRunInstruction();
+                    updateStack();
+                    try {
+                        VirtualMachine.getInstance().exec_instruction(VirtualMachine.getInstance().I.get(VirtualMachine.getInstance().i));
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+                }
+                if(!VirtualMachine.getInstance().running)
+                    estado3();
+            }
+        });
+        stopButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                //todo e volta pro estado 0
+                clearOUTPUT();
+                VirtualMachine.getInstance().inicializa();
+                updateInstruction();
+                updateStack();
+                estado0();
+            }
+        });
+
+        list2.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if(SwingUtilities.isRightMouseButton(e)){
+                    pop_bkpt.show(list2, e.getPoint().x, e.getPoint().y);
+                }
+                super.mousePressed(e);
             }
         });
     }
+    void estado0(){
+        bttnRun.setEnabled(false);
+        bttnDbg.setEnabled(false);
+        bttnLoad.setEnabled(true);
+        stopButton.setEnabled(false);
+        bttnStep.setEnabled(false);
+        bttnBkpt.setEnabled(false);
+    }
+
+    void estado1(){
+        bttnRun.setEnabled(true);
+        bttnDbg.setEnabled(true);
+        bttnLoad.setEnabled(true);
+        stopButton.setEnabled(false);
+        bttnStep.setEnabled(false);
+        bttnBkpt.setEnabled(false);
+    }
+
+    void estado2(){ //estado debug
+        bttnRun.setEnabled(false);
+        bttnDbg.setEnabled(false);
+        bttnLoad.setEnabled(false);
+        stopButton.setEnabled(true);
+        bttnStep.setEnabled(true);
+        bttnBkpt.setEnabled(true);
+    }
+
+    void estado3(){ //estado execucao normal
+        bttnRun.setEnabled(false);
+        bttnDbg.setEnabled(false);
+        bttnLoad.setEnabled(false);
+        stopButton.setEnabled(true);
+        bttnStep.setEnabled(false);
+        bttnBkpt.setEnabled(false);
+    }
+
+    public void clearOUTPUT(){
+        ((DefaultListModel)list1.getModel()).clear();
+    }
+    public void addOUTPUT(int val){
+        try{
+            ((DefaultListModel)list1.getModel()).addElement(val);
+        }catch (NullPointerException e){
+            System.out.println(e);
+        }
+
+    }
+
+    boolean bkpt_contido(int line){
+        for(int i=0;i<listModel2.getSize();i++){
+            if((Integer)listModel2.getElementAt(i) == line)
+                return true;
+        }
+        return false;
+    }
+
     //my-functions-------------
     public void printConsole(String input){
         consoleTextArea.setText(consoleTextArea.getText() + input + "\n");
@@ -451,19 +591,31 @@ public final class Interface extends JFrame {
         return false;
     }
     //-------------------------
-    private void updateInstructions(){
+    private void updateRunInstruction(){
         SelectorI.set(VirtualMachine.getInstance().i);
         SelectorI.updateSelection();
-        label1.setText(Integer.toString(VirtualMachine.getInstance().i));
+        label1.setText("i:"+Integer.toString(VirtualMachine.getInstance().i));
     }
     private void updateStack(){
         TModS.setRowCount(0);
         for(int x=0;x<VirtualMachine.getInstance().M.size();x++)
             TModS.addRow(x,VirtualMachine.getInstance().M.get(x));
-        label2.setText(Integer.toString(VirtualMachine.getInstance().s));
+        label2.setText("s:"+Integer.toString(VirtualMachine.getInstance().s));
+    }
+    private void updateInstruction(){
+        TModI.clear();
+        TModI.setRowCount(0);
+        for (int i = 0; i < VirtualMachine.getInstance().I.size(); i++) {
+            TModI.addRow(VirtualMachine.getInstance().I.get(i));
+        }
+        label1.setText("i:"+Integer.toString(VirtualMachine.getInstance().i));
     }
     private void createUIComponents() {
         // TODO: place custom component creation code here
+        listModel2 = new DefaultListModel();
+        list2 = new JList(listModel2);
+
+
         table1 = new JTable();
         TModS = new TableModStack();
         table1.setModel(TModS);

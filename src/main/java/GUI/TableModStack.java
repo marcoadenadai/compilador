@@ -8,7 +8,6 @@ import java.util.Vector;
 
 public class TableModStack extends DefaultTableModel {
     public static final String[] columnNames = {"M[s]", "Value"};
-    private int count=0;
     public TableModStack() {
         super(columnNames, 0);
     }
@@ -27,7 +26,6 @@ public class TableModStack extends DefaultTableModel {
         rowVector.add(x);
         rowVector.add(value);
         super.addRow(rowVector);
-        count++;
     }
 
     public boolean isCellEditable(int row, int col) {

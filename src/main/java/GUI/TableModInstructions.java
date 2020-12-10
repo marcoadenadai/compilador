@@ -22,6 +22,11 @@ public class TableModInstructions extends DefaultTableModel {
     }
 
 
+    public void clear(){
+        count=0;
+    }
+
+
     public void addRow(InstructionData instructionData) {
         if (instructionData == null) {
             throw new IllegalArgumentException("rowData cannot be null");

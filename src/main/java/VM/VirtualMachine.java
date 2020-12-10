@@ -1,6 +1,7 @@
 package VM;
 
 import DATATYPES.InstructionData;
+import GUI.Interface;
 
 import javax.swing.*;
 import java.io.*;
@@ -65,7 +66,18 @@ public final class VirtualMachine {
         ret = a.replaceAll("");
         return ret;
     }
+
+    public void inicializa(){
+        M.clear();
+        I.clear();
+        i=0;
+        s=0;
+        running=false;
+    }
+
     public boolean load(File asm){
+        inicializa();
+
         try (BufferedReader br = new BufferedReader(new FileReader(asm))) {
             String tmp,  str = br.readLine()+"\r\n";
             while ((tmp = br.readLine()) != null)   { str+=tmp+"\r\n"; }
@@ -105,7 +117,6 @@ public final class VirtualMachine {
             try {
                 do{
                     exec_instruction(I.get(i));
-
                 }while(running);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -279,6 +290,7 @@ public final class VirtualMachine {
                 i++;
                 break;
             case "PRN":
+                Interface.getInstance().addOUTPUT(M.get(s));
                 System.out.println("OUTPUT: "+M.get(s));//TODO PRINT M.get(s);
                 s--;
                 i++;
