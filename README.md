@@ -18,7 +18,7 @@
 - [Releases Page](https://github.com/marcoadenadai/compilador/releases)
 
 ## Demonstração
-**Gif demonstrando um pouco do compilador para cálculo fatorial:**
+**Gif demonstrando a compilação e execução de programa para cálculo fatorial:**
 
 ![Demo obs: quality loss on conversion](demo.gif)
 
